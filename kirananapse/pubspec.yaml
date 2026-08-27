@@ -1,0 +1,52 @@
+name: kirananapse
+description: "Kirana-Napse - AI-Powered Demand Forecasting & Reorder Assistant for Kirana Stores"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  # State Management
+  provider: ^6.1.4
+  # HTTP Client
+  dio: ^5.8.0
+  # Local Storage / Offline Cache
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  # Navigation
+  go_router: ^14.8.0
+  # Firebase
+  firebase_core: ^3.13.0
+  firebase_messaging: ^15.2.5
+  # UI
+  google_fonts: ^6.2.1
+  shimmer: ^3.0.0
+  flutter_animate: ^4.5.2
+  fl_chart: ^0.70.2
+  # Utilities
+  share_plus: ^10.1.4
+  image_picker: ^1.1.2
+  connectivity_plus: ^6.1.4
+  intl: ^0.20.2
+  shared_preferences: ^2.5.3
+  uuid: ^4.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+

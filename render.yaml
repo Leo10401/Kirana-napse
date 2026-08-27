@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: kirana-napse-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.10
+      - key: APP_ENV
+        value: production
+      - key: MONGODB_URL
+        sync: false
+      - key: MONGODB_DB_NAME
+        value: kirana_napse
+      - key: JWT_SECRET
+        generateValue: true
+      - key: KEEP_ALIVE_ENABLED
+        value: "true"
+      - key: KEEP_ALIVE_INTERVAL_SECONDS
+        value: "210"
