@@ -7,10 +7,13 @@ import 'app/router.dart';
 import 'core/providers/auth_provider.dart';
 import 'core/providers/store_provider.dart';
 import 'core/providers/recommendation_provider.dart';
-
+import 'core/services/app_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize dynamic environment configuration (defaults to local for testing)
+  await AppConfig.initialize();
 
   // Lock to portrait mode for kirana owner usage
   await SystemChrome.setPreferredOrientations([

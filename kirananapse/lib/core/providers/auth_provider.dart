@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -62,7 +63,17 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _error = 'Registration failed. Please try again.';
+      if (e is DioException) {
+        if (e.response?.data is Map && e.response?.data['detail'] != null) {
+          _error = e.response?.data['detail'].toString();
+        } else if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.connectionError) {
+          _error = 'Server unreachable. Please check internet connection.';
+        } else {
+          _error = 'Registration failed (${e.response?.statusCode ?? 'network error'}).';
+        }
+      } else {
+        _error = 'Registration failed. Please try again.';
+      }
       _isLoading = false;
       notifyListeners();
       return false;
@@ -86,7 +97,19 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _error = 'Invalid phone or password.';
+      if (e is DioException) {
+        if (e.response?.statusCode == 401) {
+          _error = 'Invalid phone or password.';
+        } else if (e.response?.data is Map && e.response?.data['detail'] != null) {
+          _error = e.response?.data['detail'].toString();
+        } else if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.connectionError) {
+          _error = 'Server unreachable. Please check internet connection.';
+        } else {
+          _error = 'Login failed (${e.response?.statusCode ?? 'network error'}).';
+        }
+      } else {
+        _error = 'Login failed. Please try again.';
+      }
       _isLoading = false;
       notifyListeners();
       return false;
@@ -106,7 +129,10 @@ class AuthProvider extends ChangeNotifier {
     _isOnboarded = false;
     ApiClient.clearAuth();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    await prefs.remove('auth_token');
+    await prefs.remove('user_id');
+    await prefs.remove('store_id');
+    await prefs.remove('is_onboarded');
     notifyListeners();
   }
 }

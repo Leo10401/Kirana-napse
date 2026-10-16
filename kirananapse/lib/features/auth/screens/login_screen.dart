@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 
 import '../../../app/theme.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/services/api_client.dart';
+import '../../../core/services/app_config.dart';
 import '../../../shared/widgets/common_widgets.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -41,6 +43,120 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void _showEnvironmentSelector(BuildContext context) {
+    ApiEnvironment tempEnv = AppConfig.currentEnv;
+    String? testResult;
+    bool isTesting = false;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Backend Server Mode',
+                    style: GoogleFonts.hind(fontSize: 16, fontWeight: FontWeight.w700, color: KiranaNapseTheme.jute),
+                  ),
+                  const SizedBox(height: 12),
+                  ListTile(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    tileColor: tempEnv == ApiEnvironment.local ? KiranaNapseTheme.turmericTint : KiranaNapseTheme.riceCard,
+                    leading: const Icon(Icons.laptop_chromebook_rounded, color: KiranaNapseTheme.terracotta),
+                    title: Text('Local Testing (Auto-failover to Cloud)', style: GoogleFonts.hind(fontWeight: FontWeight.w600)),
+                    subtitle: Text(AppConfig.defaultLocalUrl, style: GoogleFonts.hind(fontSize: 11)),
+                    trailing: tempEnv == ApiEnvironment.local ? const Icon(Icons.check_circle, color: KiranaNapseTheme.terracotta) : null,
+                    onTap: () {
+                      setModalState(() => tempEnv = ApiEnvironment.local);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  ListTile(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    tileColor: tempEnv == ApiEnvironment.deployed ? KiranaNapseTheme.turmericTint : KiranaNapseTheme.riceCard,
+                    leading: const Icon(Icons.cloud_done_rounded, color: KiranaNapseTheme.terracotta),
+                    title: Text('Render Cloud (Direct)', style: GoogleFonts.hind(fontWeight: FontWeight.w600)),
+                    subtitle: Text(AppConfig.deployedUrl, style: GoogleFonts.hind(fontSize: 11)),
+                    trailing: tempEnv == ApiEnvironment.deployed ? const Icon(Icons.check_circle, color: KiranaNapseTheme.terracotta) : null,
+                    onTap: () {
+                      setModalState(() => tempEnv = ApiEnvironment.deployed);
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: isTesting
+                            ? null
+                            : () async {
+                                setModalState(() {
+                                  isTesting = true;
+                                  testResult = null;
+                                });
+                                final target = tempEnv == ApiEnvironment.deployed
+                                    ? AppConfig.deployedUrl
+                                    : AppConfig.defaultLocalUrl;
+                                try {
+                                  final res = await ApiClient.testHealthConnection(target);
+                                  setModalState(() {
+                                    isTesting = false;
+                                    testResult = 'Online (${res['status'] ?? 'ok'})';
+                                  });
+                                } catch (_) {
+                                  setModalState(() {
+                                    isTesting = false;
+                                    testResult = 'Offline';
+                                  });
+                                }
+                              },
+                        icon: isTesting
+                            ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.wifi_tethering, size: 16),
+                        label: Text('Test Ping', style: GoogleFonts.hind(fontSize: 12)),
+                      ),
+                      const SizedBox(width: 8),
+                      if (testResult != null)
+                        Text(
+                          testResult!,
+                          style: GoogleFonts.hind(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: testResult!.contains('Online') ? Colors.green.shade700 : KiranaNapseTheme.chili,
+                          ),
+                        ),
+                      const Spacer(),
+                      ElevatedButton(
+                        onPressed: () async {
+                          await AppConfig.setEnvironment(tempEnv);
+                          if (context.mounted) {
+                            Navigator.pop(dialogCtx);
+                            setState(() {});
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(backgroundColor: KiranaNapseTheme.terracotta),
+                        child: Text('Save', style: GoogleFonts.hind(color: Colors.white, fontWeight: FontWeight.w700)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -53,11 +169,42 @@ class _LoginScreenState extends State<LoginScreen> {
             const ToranGarland(height: 16),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 16),
+                    // Server environment chip
+                    Align(
+                      alignment: Alignment.topRight,
+                      child: GestureDetector(
+                        onTap: () => _showEnvironmentSelector(context),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: KiranaNapseTheme.sandstone.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                AppConfig.currentEnv == ApiEnvironment.deployed
+                                    ? Icons.cloud_done_rounded
+                                    : Icons.laptop_chromebook_rounded,
+                                size: 13,
+                                color: KiranaNapseTheme.jute,
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                AppConfig.currentEnv == ApiEnvironment.deployed ? 'Cloud' : 'Local ⚡ (Auto-Cloud)',
+                                style: GoogleFonts.hind(fontSize: 10.5, fontWeight: FontWeight.w600, color: KiranaNapseTheme.jute),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
 
                     // Logo badge (Turmeric circle with storefront)
                     Center(
