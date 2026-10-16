@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 import '../../../app/theme.dart';
+import '../../../core/providers/store_provider.dart';
 import '../../../shared/widgets/common_widgets.dart';
 
 /// Onboarding Step 4: How do you currently track sales? (AppFlow §4.4).
@@ -15,6 +17,29 @@ class DataSourceScreen extends StatefulWidget {
 
 class _DataSourceScreenState extends State<DataSourceScreen> {
   String? _selectedMethod;
+  bool _isSubmitting = false;
+
+  Future<void> _continue() async {
+    final method = _selectedMethod;
+    if (method == null || _isSubmitting) return;
+    final store = context.read<StoreProvider>();
+    store.setOnboardingTrackingMethod(method);
+    setState(() => _isSubmitting = true);
+    final saved = await store.submitOnboarding();
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+    if (saved) {
+      context.go('/onboarding/done');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Could not save your store. Check your connection and try again.',
+          ),
+        ),
+      );
+    }
+  }
 
   final _methods = [
     {
@@ -50,7 +75,10 @@ class _DataSourceScreenState extends State<DataSourceScreen> {
             const ToranGarland(height: 16),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -69,7 +97,10 @@ class _DataSourceScreenState extends State<DataSourceScreen> {
                     const SizedBox(height: 6),
                     Text(
                       'Helps determine initial data onboarding mode.',
-                      style: GoogleFonts.hind(fontSize: 13.5, color: KiranaNapseTheme.juteSoft),
+                      style: GoogleFonts.hind(
+                        fontSize: 13.5,
+                        color: KiranaNapseTheme.juteSoft,
+                      ),
                     ),
                     const SizedBox(height: 24),
 
@@ -79,7 +110,9 @@ class _DataSourceScreenState extends State<DataSourceScreen> {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: GestureDetector(
-                          onTap: () => setState(() => _selectedMethod = method['id'] as String),
+                          onTap: () => setState(
+                            () => _selectedMethod = method['id'] as String,
+                          ),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 180),
                             padding: const EdgeInsets.all(14),
@@ -103,12 +136,17 @@ class _DataSourceScreenState extends State<DataSourceScreen> {
                                     color: color.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  child: Icon(method['icon'] as IconData, color: color, size: 22),
+                                  child: Icon(
+                                    method['icon'] as IconData,
+                                    color: color,
+                                    size: 22,
+                                  ),
                                 ),
                                 const SizedBox(width: 14),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         method['title'] as String,
@@ -130,7 +168,11 @@ class _DataSourceScreenState extends State<DataSourceScreen> {
                                   ),
                                 ),
                                 if (isSelected)
-                                  const Icon(Icons.check_circle_rounded, color: KiranaNapseTheme.turmericDark, size: 20),
+                                  const Icon(
+                                    Icons.check_circle_rounded,
+                                    color: KiranaNapseTheme.turmericDark,
+                                    size: 20,
+                                  ),
                               ],
                             ),
                           ),
@@ -148,10 +190,15 @@ class _DataSourceScreenState extends State<DataSourceScreen> {
                           backgroundColor: KiranaNapseTheme.turmeric,
                           foregroundColor: const Color(0xFF4A2E0A),
                         ),
-                        onPressed: _selectedMethod != null ? () => context.go('/onboarding/done') : null,
+                        onPressed: _selectedMethod != null && !_isSubmitting
+                            ? _continue
+                            : null,
                         child: Text(
-                          'Continue',
-                          style: GoogleFonts.hind(fontSize: 14.5, fontWeight: FontWeight.w700),
+                          _isSubmitting ? 'Saving store…' : 'Continue',
+                          style: GoogleFonts.hind(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ),
@@ -174,7 +221,9 @@ class _DataSourceScreenState extends State<DataSourceScreen> {
             height: 4,
             margin: EdgeInsets.only(right: i < total - 1 ? 6 : 0),
             decoration: BoxDecoration(
-              color: isActive ? KiranaNapseTheme.terracotta : KiranaNapseTheme.sandstone,
+              color: isActive
+                  ? KiranaNapseTheme.terracotta
+                  : KiranaNapseTheme.sandstone,
               borderRadius: BorderRadius.circular(2),
             ),
           ),

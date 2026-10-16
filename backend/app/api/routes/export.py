@@ -52,7 +52,8 @@ async def generate_distributor_list(
             "quantity": qty,
             "unit": sku_unit,
         })
-        text_lines.append(f"{i}. {sku_name} — {int(qty) if isinstance(qty, (int, float)) and qty.is_integer() else qty} {sku_unit}")
+        display_qty = int(qty) if isinstance(qty, (int, float)) and float(qty).is_integer() else qty
+        text_lines.append(f"{i}. {sku_name} — {display_qty} {sku_unit}")
 
     text_lines.append("─" * 30)
     text_lines.append(f"Total items: {len(items)}")

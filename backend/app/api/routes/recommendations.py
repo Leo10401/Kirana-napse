@@ -33,7 +33,15 @@ async def get_today_recommendations(
         raise HTTPException(status_code=403, detail="Not authorized for this store")
 
     cursor = db.recommendations.find({"store_id": store_id}).sort("created_at", -1).limit(200)
-    recs = await cursor.to_list(length=200)
+    recent_recs = await cursor.to_list(length=200)
+    # Re-running the forecast can leave older recommendations for the same
+    # product. Show only its newest recommendation in the daily view.
+    recs = []
+    seen_skus = set()
+    for rec in recent_recs:
+        if rec["sku_id"] not in seen_skus:
+            seen_skus.add(rec["sku_id"])
+            recs.append(rec)
 
     responses = []
     for rec in recs:

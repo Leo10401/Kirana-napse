@@ -15,6 +15,8 @@ import '../features/export/screens/distributor_export_screen.dart';
 import '../features/feedback/screens/feedback_prompt_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
 import '../features/sales_entry/screens/manual_entry_screen.dart';
+import '../features/items/screens/item_catalog_screen.dart';
+import '../features/items/screens/add_item_screen.dart';
 import '../shared/widgets/app_shell.dart';
 
 /// App router with deep-link support for push notification navigation.
@@ -72,6 +74,11 @@ class AppRouter {
             builder: (context, state) => const HomeScreen(),
           ),
           GoRoute(
+            path: '/items',
+            name: 'items',
+            builder: (context, state) => const ItemCatalogScreen(),
+          ),
+          GoRoute(
             path: '/reorder',
             name: 'reorder',
             builder: (context, state) => const ReorderListScreen(),
@@ -93,9 +100,8 @@ class AppRouter {
       GoRoute(
         path: '/item/:itemId',
         name: 'item-detail',
-        builder: (context, state) => ItemDetailScreen(
-          itemId: state.pathParameters['itemId']!,
-        ),
+        builder: (context, state) =>
+            ItemDetailScreen(itemId: state.pathParameters['itemId']!),
       ),
       GoRoute(
         path: '/export',
@@ -108,6 +114,11 @@ class AppRouter {
         builder: (context, state) => FeedbackPromptScreen(
           recommendationId: state.pathParameters['recId']!,
         ),
+      ),
+      GoRoute(
+        path: '/items/add',
+        name: 'items-add',
+        builder: (context, state) => const AddItemScreen(),
       ),
       GoRoute(
         path: '/sales/add',

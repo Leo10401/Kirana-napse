@@ -16,56 +16,22 @@ class ReorderListScreen extends StatefulWidget {
 }
 
 class _ReorderListScreenState extends State<ReorderListScreen> {
-  // Local state for interactive ordered/quantity changes
-  final Set<String> _orderedIds = {};
-  final Map<String, String> _customQtys = {};
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<RecommendationProvider>().loadRecommendations();
+    });
+  }
 
-  final List<Map<String, dynamic>> _fallbackItems = [
-    {
-      'id': 'rec_1',
-      'sku_id': 'sku_1',
-      'name': 'Atta (5kg)',
-      'qty': '15 kg',
-      'reason': '40% more sold than usual last week',
-      'urgent': true,
-    },
-    {
-      'id': 'rec_2',
-      'sku_id': 'sku_2',
-      'name': 'Maggi noodles',
-      'qty': '3 box',
-      'reason': 'Stock runs out in 2 days',
-      'urgent': true,
-    },
-    {
-      'id': 'rec_3',
-      'sku_id': 'sku_3',
-      'name': 'Sugar (1kg)',
-      'qty': '10 pkt',
-      'reason': 'Steady weekly demand',
-      'urgent': false,
-    },
-    {
-      'id': 'rec_4',
-      'sku_id': 'sku_4',
-      'name': 'Fortune Sunlite Oil 1L',
-      'qty': '12 ltr',
-      'reason': 'Upcoming festival surge • 2 days lead time',
-      'urgent': true,
-    },
-    {
-      'id': 'rec_5',
-      'sku_id': 'sku_5',
-      'name': 'Tata Salt 1kg',
-      'qty': '24 pkt',
-      'reason': 'Fast turnover staple • Safety stock reorder',
-      'urgent': false,
-    },
-  ];
-
-  void _showEditQtyDialog(String id, String currentQty, String itemName) {
-    final controller = TextEditingController(text: currentQty);
-    showDialog(
+  Future<void> _showEditQtyDialog(
+    String id,
+    num currentQty,
+    String unit,
+    String itemName,
+  ) async {
+    final controller = TextEditingController(text: currentQty.toString());
+    await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: KiranaNapseTheme.riceCard,
@@ -75,39 +41,65 @@ class _ReorderListScreenState extends State<ReorderListScreen> {
         ),
         title: Text(
           'Edit Quantity: $itemName',
-          style: GoogleFonts.baloo2(fontSize: 18, fontWeight: FontWeight.w700, color: KiranaNapseTheme.jute),
+          style: GoogleFonts.baloo2(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: KiranaNapseTheme.jute,
+          ),
         ),
         content: TextField(
           controller: controller,
-          keyboardType: TextInputType.text,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
           autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'e.g. 20 kg or 4 box',
-          ),
+          decoration: InputDecoration(hintText: 'Quantity', suffixText: unit),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('Cancel', style: GoogleFonts.hind(color: KiranaNapseTheme.juteSoft, fontWeight: FontWeight.w600)),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.hind(
+                color: KiranaNapseTheme.juteSoft,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: KiranaNapseTheme.turmeric,
               foregroundColor: const Color(0xFF4A2E0A),
             ),
-            onPressed: () {
-              if (controller.text.trim().isNotEmpty) {
-                setState(() {
-                  _customQtys[id] = controller.text.trim();
-                });
+            onPressed: () async {
+              final quantity = double.tryParse(controller.text.trim());
+              if (quantity == null || quantity < 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Enter a valid quantity.')),
+                );
+                return;
               }
-              Navigator.of(ctx).pop();
+              final saved = await context
+                  .read<RecommendationProvider>()
+                  .updateRecommendation(id, 'edited', editedQty: quantity);
+              if (!mounted || !ctx.mounted) return;
+              if (saved) {
+                Navigator.of(ctx).pop();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Could not save the quantity. Try again.'),
+                  ),
+                );
+              }
             },
-            child: Text('Save', style: GoogleFonts.hind(fontWeight: FontWeight.w700)),
+            child: Text(
+              'Save',
+              style: GoogleFonts.hind(fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),
     );
+    controller.dispose();
   }
 
   @override
@@ -115,23 +107,25 @@ class _ReorderListScreenState extends State<ReorderListScreen> {
     final rec = context.watch<RecommendationProvider>();
     final backendItems = rec.reorderItems;
 
-    final displayItems = backendItems.isNotEmpty
-        ? backendItems.map((item) {
-            final id = item['id'] ?? item['sku_id'] ?? 'item';
-            final name = item['sku_name'] ?? 'Item';
-            final qty = _customQtys[id] ?? '${item['owner_edited_qty'] ?? item['suggested_qty'] ?? 1} ${item['unit'] ?? 'pcs'}';
-            final reason = item['reason_text'] ?? 'Low stock alert';
-            final isUrgent = item['type'] == 'low_stock';
-            return {
-              'id': id,
-              'sku_id': item['sku_id'],
-              'name': name,
-              'qty': qty,
-              'reason': reason,
-              'urgent': isUrgent,
-            };
-          }).toList()
-        : _fallbackItems;
+    final displayItems = backendItems.map((item) {
+      final id = item['id'] ?? item['sku_id'] ?? 'item';
+      final name = item['sku_name'] ?? 'Item';
+      final qty =
+          (item['owner_edited_qty'] ?? item['suggested_qty'] ?? 1) as num;
+      final unit = item['sku_unit'] ?? 'pcs';
+      final reason = item['reason_text'] ?? 'Low stock alert';
+      final isUrgent = item['type'] == 'low_stock';
+      return {
+        'id': id,
+        'sku_id': item['sku_id'],
+        'name': name,
+        'qty': qty,
+        'unit': unit,
+        'reason': reason,
+        'urgent': isUrgent,
+        'status': item['status'] ?? 'pending',
+      };
+    }).toList();
 
     return Scaffold(
       backgroundColor: KiranaNapseTheme.rice,
@@ -153,7 +147,10 @@ class _ReorderListScreenState extends State<ReorderListScreen> {
                 trailing: GestureDetector(
                   onTap: () => context.push('/export'),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(8),
@@ -161,7 +158,11 @@ class _ReorderListScreenState extends State<ReorderListScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.share_rounded, color: Color(0xFFFBE9DE), size: 14),
+                        const Icon(
+                          Icons.share_rounded,
+                          color: Color(0xFFFBE9DE),
+                          size: 14,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           'Export',
@@ -187,7 +188,7 @@ class _ReorderListScreenState extends State<ReorderListScreen> {
                   physics: const BouncingScrollPhysics(),
                   children: [
                     Text(
-                      '${displayItems.length} ITEMS',
+                      '${displayItems.length} items to reorder',
                       style: GoogleFonts.hind(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w600,
@@ -197,39 +198,70 @@ class _ReorderListScreenState extends State<ReorderListScreen> {
                     ),
                     const SizedBox(height: 10),
 
+                    if (rec.isLoading && displayItems.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 30),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (displayItems.isEmpty)
+                      KiranaEmptyState(
+                        icon: rec.error == null
+                            ? Icons.check_circle_outline_rounded
+                            : Icons.wifi_off_rounded,
+                        title: rec.error == null
+                            ? 'No reorders right now'
+                            : 'Could not load reorders',
+                        message:
+                            rec.error ??
+                            'Add sales and stock details to see what your store needs next.',
+                        actionLabel: rec.error == null ? null : 'Try again',
+                        onAction: rec.error == null
+                            ? null
+                            : () => rec.loadRecommendations(),
+                      ),
+
                     ...displayItems.map((item) {
                       final id = item['id'] as String;
-                      final isOrdered = _orderedIds.contains(id);
-                      final currentQty = _customQtys[id] ?? item['qty'] as String;
+                      final isOrdered = item['status'] == 'ordered';
+                      final currentQty = item['qty'] as num;
+                      final unit = item['unit'] as String;
 
                       return KiranaItemCard(
                         name: item['name'] as String,
-                        qtyText: currentQty,
+                        qtyText: '$currentQty $unit',
                         reason: item['reason'] as String,
                         indicator: isOrdered
                             ? KiranaCardIndicator.ok
                             : ((item['urgent'] as bool)
-                                ? KiranaCardIndicator.urgent
-                                : KiranaCardIndicator.ok),
+                                  ? KiranaCardIndicator.urgent
+                                  : KiranaCardIndicator.ok),
                         actions: [
                           MiniButton(
                             label: 'Edit qty',
                             filled: false,
-                            onTap: () => _showEditQtyDialog(id, currentQty, item['name'] as String),
+                            onTap: () => _showEditQtyDialog(
+                              id,
+                              currentQty,
+                              unit,
+                              item['name'] as String,
+                            ),
                           ),
                           MiniButton(
                             label: isOrdered ? 'Ordered ✓' : 'Mark ordered',
                             filled: true,
-                            onTap: () {
-                              setState(() {
-                                if (isOrdered) {
-                                  _orderedIds.remove(id);
-                                } else {
-                                  _orderedIds.add(id);
-                                }
-                              });
-                              if (item['id'] != null) {
-                                rec.updateRecommendation(id, isOrdered ? 'pending' : 'ordered');
+                            onTap: () async {
+                              final saved = await rec.updateRecommendation(
+                                id,
+                                isOrdered ? 'pending' : 'ordered',
+                              );
+                              if (!saved && mounted) {
+                                ScaffoldMessenger.of(this.context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Could not update this item. Try again.',
+                                    ),
+                                  ),
+                                );
                               }
                             },
                           ),
@@ -269,9 +301,17 @@ class _ReorderListScreenState extends State<ReorderListScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: () => context.push('/export'),
+                  onPressed: displayItems.isEmpty
+                      ? rec.error == null
+                            ? () => context.push('/sales/add')
+                            : () => rec.loadRecommendations()
+                      : () => context.push('/export'),
                   child: Text(
-                    'Share with distributor',
+                    displayItems.isEmpty
+                        ? rec.error == null
+                              ? 'Add a sale'
+                              : 'Try again'
+                        : 'Share with distributor',
                     style: GoogleFonts.hind(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w700,

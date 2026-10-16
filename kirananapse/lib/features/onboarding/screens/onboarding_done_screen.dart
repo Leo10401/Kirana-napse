@@ -21,7 +21,10 @@ class OnboardingDoneScreen extends StatelessWidget {
             const ToranGarland(height: 16),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
                 child: Column(
                   children: [
                     _buildStepIndicator(5, 5),
@@ -35,7 +38,11 @@ class OnboardingDoneScreen extends StatelessWidget {
                         color: KiranaNapseTheme.betel,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.check_rounded, size: 44, color: Color(0xFFEFF4E7)),
+                      child: const Icon(
+                        Icons.check_rounded,
+                        size: 44,
+                        color: Color(0xFFEFF4E7),
+                      ),
                     ),
                     const SizedBox(height: 24),
 
@@ -50,7 +57,7 @@ class OnboardingDoneScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Your initial benchmark forecasts are generated and ready for review on your dashboard.',
+                      'Your store is ready. Add sales and stock details to get useful reorder suggestions.',
                       style: GoogleFonts.hind(
                         fontSize: 13.5,
                         color: KiranaNapseTheme.juteSoft,
@@ -66,7 +73,10 @@ class OnboardingDoneScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: KiranaNapseTheme.riceCard,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: KiranaNapseTheme.sandstone, width: 1),
+                        border: Border.all(
+                          color: KiranaNapseTheme.sandstone,
+                          width: 1,
+                        ),
                       ),
                       child: Column(
                         children: [
@@ -110,7 +120,10 @@ class OnboardingDoneScreen extends StatelessWidget {
                         },
                         child: Text(
                           'Go to Dashboard →',
-                          style: GoogleFonts.hind(fontSize: 14.5, fontWeight: FontWeight.w700),
+                          style: GoogleFonts.hind(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ),
@@ -125,7 +138,12 @@ class OnboardingDoneScreen extends StatelessWidget {
     );
   }
 
-  Widget _expectationRow(IconData icon, String title, String subtitle, Color color) {
+  Widget _expectationRow(
+    IconData icon,
+    String title,
+    String subtitle,
+    Color color,
+  ) {
     return Row(
       children: [
         Container(
@@ -143,11 +161,18 @@ class OnboardingDoneScreen extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: GoogleFonts.hind(fontSize: 13, fontWeight: FontWeight.w700, color: KiranaNapseTheme.jute),
+                style: GoogleFonts.hind(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: KiranaNapseTheme.jute,
+                ),
               ),
               Text(
                 subtitle,
-                style: GoogleFonts.hind(fontSize: 11.5, color: KiranaNapseTheme.juteSoft),
+                style: GoogleFonts.hind(
+                  fontSize: 11.5,
+                  color: KiranaNapseTheme.juteSoft,
+                ),
               ),
             ],
           ),
@@ -165,7 +190,9 @@ class OnboardingDoneScreen extends StatelessWidget {
             height: 4,
             margin: EdgeInsets.only(right: i < total - 1 ? 6 : 0),
             decoration: BoxDecoration(
-              color: isActive ? KiranaNapseTheme.terracotta : KiranaNapseTheme.sandstone,
+              color: isActive
+                  ? KiranaNapseTheme.terracotta
+                  : KiranaNapseTheme.sandstone,
               borderRadius: BorderRadius.circular(2),
             ),
           ),

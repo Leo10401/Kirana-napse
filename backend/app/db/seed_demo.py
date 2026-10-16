@@ -17,15 +17,17 @@ from app.db.init_db import seed_festivals
 DEMO_SKUS = [
     {"name": "Amul Butter 500g", "category": "dairy", "unit": "pcs", "is_perishable": True, "lead_time": 2, "stock": 4.0, "avg_daily_sales": 8.0},
     {"name": "Aashirvaad Shudh Chakki Atta 5kg", "category": "grocery", "unit": "pcs", "is_perishable": False, "lead_time": 3, "stock": 2.0, "avg_daily_sales": 6.0},
-    {"name": "Tata Tea Premium 500g", "category": "beverages", "unit": "pcs", "is_perishable": False, "lead_time": 2, "stock": 18.0, "avg_daily_sales": 4.0},
+    {"name": "Tata Tea Premium 500g", "category": "beverages", "unit": "pcs", "is_perishable": False, "lead_time": 2, "stock": 17.0, "avg_daily_sales": 4.0},
     {"name": "Fortune Sunlite Sunflower Oil 1L", "category": "grocery", "unit": "ltr", "is_perishable": False, "lead_time": 2, "stock": 5.0, "avg_daily_sales": 10.0},
     {"name": "Maggi 2-Minute Noodles 70g", "category": "snacks", "unit": "pcs", "is_perishable": False, "lead_time": 1, "stock": 3.0, "avg_daily_sales": 15.0},
-    {"name": "Dettol Original Soap 125g (Pack of 3)", "category": "personal care", "unit": "pack", "is_perishable": False, "lead_time": 2, "stock": 35.0, "avg_daily_sales": 1.5},
-    {"name": "Mother Dairy Full Cream Milk 500ml", "category": "dairy", "unit": "pcs", "is_perishable": True, "lead_time": 1, "stock": 6.0, "avg_daily_sales": 25.0, "days_to_expiry": 2},
-    {"name": "Parle-G Gold Biscuits 100g", "category": "snacks", "unit": "pcs", "is_perishable": False, "lead_time": 1, "stock": 80.0, "avg_daily_sales": 2.0},
-    {"name": "Surf Excel Easy Wash Detergent 1kg", "category": "personal care", "unit": "pcs", "is_perishable": False, "lead_time": 2, "stock": 14.0, "avg_daily_sales": 3.0},
-    {"name": "Cadbury Dairy Milk Silk 60g", "category": "snacks", "unit": "pcs", "is_perishable": True, "lead_time": 2, "stock": 4.0, "avg_daily_sales": 5.0, "days_to_expiry": 4},
+    {"name": "Dettol Original Soap 125g (Pack of 3)", "category": "personal care", "unit": "pack", "is_perishable": False, "lead_time": 2, "stock": 75.0, "avg_daily_sales": 1.5},
+    {"name": "Mother Dairy Full Cream Milk 500ml", "category": "dairy", "unit": "pcs", "is_perishable": True, "lead_time": 1, "stock": 12.0, "avg_daily_sales": 2.5, "days_to_expiry": 2},
+    {"name": "Parle-G Gold Biscuits 100g", "category": "snacks", "unit": "pcs", "is_perishable": False, "lead_time": 1, "stock": 100.0, "avg_daily_sales": 2.0},
+    {"name": "Surf Excel Easy Wash Detergent 1kg", "category": "personal care", "unit": "pcs", "is_perishable": False, "lead_time": 2, "stock": 13.0, "avg_daily_sales": 3.0},
+    {"name": "Cadbury Dairy Milk Silk 60g", "category": "snacks", "unit": "pcs", "is_perishable": True, "lead_time": 2, "stock": 20.0, "avg_daily_sales": 3.0, "days_to_expiry": 4},
 ]
+
+DEMO_PRICES = [285, 315, 245, 160, 14, 145, 32, 10, 125, 80]
 
 
 async def seed_demo():
@@ -79,13 +81,12 @@ async def seed_demo():
 
     today = date.today()
 
-    # Seed SKUs, stock levels, and 14 days of sales
-    for sku_data in DEMO_SKUS:
+    # Refresh only the known demo products. The script is safe to rerun.
+    for index, sku_data in enumerate(DEMO_SKUS):
         existing_sku = await db.skus.find_one({"store_id": store_id, "name": sku_data["name"]})
+        expiry_date_str = (today + timedelta(days=sku_data.get("days_to_expiry", 180))).isoformat() if sku_data["is_perishable"] else None
         if not existing_sku:
             sku_id = str(uuid.uuid4())
-            expiry_date_str = (today + timedelta(days=sku_data.get("days_to_expiry", 180))).isoformat() if sku_data["is_perishable"] else None
-
             sku_doc = {
                 "id": sku_id,
                 "store_id": store_id,
@@ -98,43 +99,56 @@ async def seed_demo():
                 "created_at": now,
             }
             await db.skus.insert_one(sku_doc)
+        else:
+            sku_id = existing_sku["id"]
+            await db.skus.update_one({"id": sku_id}, {"$set": {
+                "category": sku_data["category"], "unit": sku_data["unit"],
+                "is_perishable": sku_data["is_perishable"],
+                "expiry_date": expiry_date_str,
+                "supplier_lead_time_days": sku_data["lead_time"],
+            }})
 
-            # Stock level
-            stock_doc = {
-                "id": str(uuid.uuid4()),
-                "store_id": store_id,
-                "sku_id": sku_id,
-                "as_of_date": today.isoformat(),
-                "quantity_on_hand": sku_data["stock"],
-                "updated_at": now,
-            }
-            await db.stock_levels.insert_one(stock_doc)
+        await db.stock_levels.update_one(
+            {"store_id": store_id, "sku_id": sku_id},
+            {"$set": {"quantity_on_hand": sku_data["stock"],
+                      "as_of_date": today.isoformat(), "updated_at": now},
+             "$setOnInsert": {"id": str(uuid.uuid4()), "store_id": store_id, "sku_id": sku_id}},
+            upsert=True,
+        )
 
-            # 14 days of sales history
-            avg_sales = sku_data["avg_daily_sales"]
-            sales_docs = []
-            for days_ago in range(14, 0, -1):
-                sales_date = today - timedelta(days=days_ago)
-                variation = 0.8 if (days_ago % 3 == 0) else (1.3 if days_ago % 7 == 0 else 1.0)
-                qty_sold = round(avg_sales * variation, 1)
+        # Remove records created by the old demo seeder, identified by its
+        # shared SKU creation timestamp. Manually entered sales are retained.
+        if existing_sku:
+            await db.sales_records.delete_many({
+                "store_id": store_id, "sku_id": sku_id,
+                "created_at": existing_sku["created_at"],
+                "revenue": {"$exists": True},
+            })
+        await db.sales_records.delete_many({
+            "store_id": store_id, "sku_id": sku_id, "demo_seed": True,
+        })
 
-                sales_docs.append({
-                    "id": str(uuid.uuid4()),
-                    "store_id": store_id,
-                    "sku_id": sku_id,
-                    "date": sales_date.isoformat(),
-                    "quantity_sold": qty_sold,
-                    "revenue": qty_sold * 50.0,
-                    "source": "manual",
-                    "confidence": 1.0,
-                    "created_at": now,
-                })
-            if sales_docs:
-                await db.sales_records.insert_many(sales_docs)
+        sales_docs = []
+        for days_ago in range(21, 0, -1):
+            sales_date = today - timedelta(days=days_ago)
+            weekend = sales_date.weekday() >= 5
+            variation = (1.22 if weekend else 1.0) * (0.87 if days_ago % 5 == 0 else 1.0)
+            qty_sold = round(sku_data["avg_daily_sales"] * variation, 1)
+            sales_docs.append({
+                "id": str(uuid.uuid4()), "store_id": store_id, "sku_id": sku_id,
+                "date": sales_date.isoformat(), "quantity_sold": qty_sold,
+                "revenue": round(qty_sold * DEMO_PRICES[index], 2),
+                "source": "manual", "confidence": 1.0,
+                "created_at": now, "demo_seed": True,
+            })
+        await db.sales_records.insert_many(sales_docs)
 
-    # Run forecasting engine
+    # Reset the demo's old recommendation runs to prevent repeated alerts.
+    await db.recommendations.delete_many({"store_id": store_id})
+    await db.forecast_runs.delete_many({"store_id": store_id})
     res = await run_forecast_for_store(db, store_id, region="National")
     print(f"[OK] Demo store seeded for Ramesh Kumar ({demo_phone})")
+    print(f"[OK] {len(DEMO_SKUS)} items, {len(DEMO_SKUS) * 21} recent sample sales.")
     print(f"[OK] Forecasting generated: {res['recommendations_generated']} recommendations.")
     client.close()
 

@@ -36,6 +36,7 @@ Health Check: http://localhost:8000/health
 ```bash
 venv\Scripts\python.exe -m app.db.seed_demo
 ```
+Log in with `+919876543210` / `password123` (also prefilled in the Flutter login screen). The seed prepares 10 catalog items, current stock, 21 days of sales per item, and fresh low-stock, reorder, overstock, and expiry recommendations. Run it again before a presentation to refresh dates and recommendations. It resets the known demo products' stock and generated recommendations while retaining manually entered sales and any other store's data.
 
 ### 4. Run Backtesting Validation Harness
 ```bash

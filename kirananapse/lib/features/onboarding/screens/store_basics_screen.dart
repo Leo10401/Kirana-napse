@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 import '../../../app/theme.dart';
+import '../../../core/providers/store_provider.dart';
 import '../../../shared/widgets/common_widgets.dart';
 
 /// Onboarding Step 3: Store basics (AppFlow §4.3 Steps 3-4).
@@ -14,16 +16,28 @@ class StoreBasicsScreen extends StatefulWidget {
 }
 
 class _StoreBasicsScreenState extends State<StoreBasicsScreen> {
-  final _storeNameController = TextEditingController(text: 'Sharma General Store');
-  final _cityController = TextEditingController(text: 'Lucknow');
+  final _storeNameController = TextEditingController();
+  final _cityController = TextEditingController();
   String _category = 'general';
 
   final _categories = [
     {'id': 'general', 'label': 'General Store', 'icon': Icons.store_rounded},
-    {'id': 'grocery', 'label': 'Kirana / Grocery', 'icon': Icons.shopping_basket_rounded},
-    {'id': 'dairy', 'label': 'Dairy & Beverages', 'icon': Icons.local_drink_rounded},
+    {
+      'id': 'grocery',
+      'label': 'Kirana / Grocery',
+      'icon': Icons.shopping_basket_rounded,
+    },
+    {
+      'id': 'dairy',
+      'label': 'Dairy & Beverages',
+      'icon': Icons.local_drink_rounded,
+    },
     {'id': 'snacks', 'label': 'Snacks & FMCG', 'icon': Icons.fastfood_rounded},
-    {'id': 'pharmacy', 'label': 'Medical / Chemist', 'icon': Icons.local_pharmacy_rounded},
+    {
+      'id': 'pharmacy',
+      'label': 'Medical / Chemist',
+      'icon': Icons.local_pharmacy_rounded,
+    },
   ];
 
   @override
@@ -43,7 +57,10 @@ class _StoreBasicsScreenState extends State<StoreBasicsScreen> {
             const ToranGarland(height: 16),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -62,14 +79,21 @@ class _StoreBasicsScreenState extends State<StoreBasicsScreen> {
                     const SizedBox(height: 6),
                     Text(
                       'Helps calibrate festival demand and category benchmarks.',
-                      style: GoogleFonts.hind(fontSize: 13.5, color: KiranaNapseTheme.juteSoft),
+                      style: GoogleFonts.hind(
+                        fontSize: 13.5,
+                        color: KiranaNapseTheme.juteSoft,
+                      ),
                     ),
                     const SizedBox(height: 24),
 
                     // Store name
                     Text(
                       'Store Name',
-                      style: GoogleFonts.hind(color: KiranaNapseTheme.jute, fontSize: 12.5, fontWeight: FontWeight.w600),
+                      style: GoogleFonts.hind(
+                        color: KiranaNapseTheme.jute,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     TextField(
@@ -77,7 +101,11 @@ class _StoreBasicsScreenState extends State<StoreBasicsScreen> {
                       style: GoogleFonts.hind(color: KiranaNapseTheme.jute),
                       decoration: const InputDecoration(
                         hintText: 'e.g. Sharma General Store',
-                        prefixIcon: Icon(Icons.store_rounded, color: KiranaNapseTheme.juteMuted, size: 20),
+                        prefixIcon: Icon(
+                          Icons.store_rounded,
+                          color: KiranaNapseTheme.juteMuted,
+                          size: 20,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -85,7 +113,11 @@ class _StoreBasicsScreenState extends State<StoreBasicsScreen> {
                     // City
                     Text(
                       'City / Region',
-                      style: GoogleFonts.hind(color: KiranaNapseTheme.jute, fontSize: 12.5, fontWeight: FontWeight.w600),
+                      style: GoogleFonts.hind(
+                        color: KiranaNapseTheme.jute,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     TextField(
@@ -93,7 +125,11 @@ class _StoreBasicsScreenState extends State<StoreBasicsScreen> {
                       style: GoogleFonts.hind(color: KiranaNapseTheme.jute),
                       decoration: const InputDecoration(
                         hintText: 'e.g. Lucknow, UP',
-                        prefixIcon: Icon(Icons.location_on_rounded, color: KiranaNapseTheme.juteMuted, size: 20),
+                        prefixIcon: Icon(
+                          Icons.location_on_rounded,
+                          color: KiranaNapseTheme.juteMuted,
+                          size: 20,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -101,7 +137,11 @@ class _StoreBasicsScreenState extends State<StoreBasicsScreen> {
                     // Category
                     Text(
                       'Store Category',
-                      style: GoogleFonts.hind(color: KiranaNapseTheme.jute, fontSize: 12.5, fontWeight: FontWeight.w600),
+                      style: GoogleFonts.hind(
+                        color: KiranaNapseTheme.jute,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     Wrap(
@@ -110,15 +150,23 @@ class _StoreBasicsScreenState extends State<StoreBasicsScreen> {
                       children: _categories.map((cat) {
                         final isSelected = _category == cat['id'];
                         return GestureDetector(
-                          onTap: () => setState(() => _category = cat['id'] as String),
+                          onTap: () =>
+                              setState(() => _category = cat['id'] as String),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 150),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
-                              color: isSelected ? KiranaNapseTheme.turmericTint : KiranaNapseTheme.riceCard,
+                              color: isSelected
+                                  ? KiranaNapseTheme.turmericTint
+                                  : KiranaNapseTheme.riceCard,
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: isSelected ? KiranaNapseTheme.turmeric : KiranaNapseTheme.sandstone,
+                                color: isSelected
+                                    ? KiranaNapseTheme.turmeric
+                                    : KiranaNapseTheme.sandstone,
                                 width: isSelected ? 1.5 : 1.0,
                               ),
                             ),
@@ -128,15 +176,21 @@ class _StoreBasicsScreenState extends State<StoreBasicsScreen> {
                                 Icon(
                                   cat['icon'] as IconData,
                                   size: 16,
-                                  color: isSelected ? KiranaNapseTheme.turmericDark : KiranaNapseTheme.juteSoft,
+                                  color: isSelected
+                                      ? KiranaNapseTheme.turmericDark
+                                      : KiranaNapseTheme.juteSoft,
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
                                   cat['label'] as String,
                                   style: GoogleFonts.hind(
                                     fontSize: 12.5,
-                                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                    color: isSelected ? KiranaNapseTheme.turmericDark : KiranaNapseTheme.jute,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: isSelected
+                                        ? KiranaNapseTheme.turmericDark
+                                        : KiranaNapseTheme.jute,
                                   ),
                                 ),
                               ],
@@ -156,10 +210,34 @@ class _StoreBasicsScreenState extends State<StoreBasicsScreen> {
                           backgroundColor: KiranaNapseTheme.turmeric,
                           foregroundColor: const Color(0xFF4A2E0A),
                         ),
-                        onPressed: () => context.go('/onboarding/data-source'),
+                        onPressed: () {
+                          final name = _storeNameController.text.trim();
+                          final city = _cityController.text.trim();
+                          if (name.isEmpty || city.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Enter your store name and city to continue.',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+                          context
+                              .read<StoreProvider>()
+                              .setOnboardingStoreBasics(
+                                name: name,
+                                city: city,
+                                category: _category,
+                              );
+                          context.go('/onboarding/data-source');
+                        },
                         child: Text(
                           'Next',
-                          style: GoogleFonts.hind(fontSize: 14.5, fontWeight: FontWeight.w700),
+                          style: GoogleFonts.hind(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ),
@@ -182,7 +260,9 @@ class _StoreBasicsScreenState extends State<StoreBasicsScreen> {
             height: 4,
             margin: EdgeInsets.only(right: i < total - 1 ? 6 : 0),
             decoration: BoxDecoration(
-              color: isActive ? KiranaNapseTheme.terracotta : KiranaNapseTheme.sandstone,
+              color: isActive
+                  ? KiranaNapseTheme.terracotta
+                  : KiranaNapseTheme.sandstone,
               borderRadius: BorderRadius.circular(2),
             ),
           ),

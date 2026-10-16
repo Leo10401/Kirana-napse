@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 import '../../../app/theme.dart';
+import '../../../core/providers/store_provider.dart';
 import '../../../shared/widgets/common_widgets.dart';
 
 /// Onboarding Step 2: Notification permission (AppFlow §4.3 Step 2).
@@ -19,7 +21,10 @@ class NotificationPermissionScreen extends StatelessWidget {
             const ToranGarland(height: 16),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -52,7 +57,10 @@ class NotificationPermissionScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: KiranaNapseTheme.riceCard,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: KiranaNapseTheme.sandstone, width: 1),
+                        border: Border.all(
+                          color: KiranaNapseTheme.sandstone,
+                          width: 1,
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -106,11 +114,23 @@ class NotificationPermissionScreen extends StatelessWidget {
                     const SizedBox(height: 24),
 
                     // Benefits list
-                    _buildBenefit(Icons.local_shipping_outlined, 'Never run out of fast-selling staples', KiranaNapseTheme.terracotta),
+                    _buildBenefit(
+                      Icons.local_shipping_outlined,
+                      'Never run out of fast-selling staples',
+                      KiranaNapseTheme.terracotta,
+                    ),
                     const SizedBox(height: 12),
-                    _buildBenefit(Icons.trending_down_rounded, 'Identify dead stock before expiry', KiranaNapseTheme.chili),
+                    _buildBenefit(
+                      Icons.trending_down_rounded,
+                      'Identify dead stock before expiry',
+                      KiranaNapseTheme.chili,
+                    ),
                     const SizedBox(height: 12),
-                    _buildBenefit(Icons.share_rounded, 'Export distributor list directly to WhatsApp', KiranaNapseTheme.betel),
+                    _buildBenefit(
+                      Icons.share_rounded,
+                      'Export distributor list directly to WhatsApp',
+                      KiranaNapseTheme.betel,
+                    ),
 
                     const Spacer(),
 
@@ -122,10 +142,18 @@ class NotificationPermissionScreen extends StatelessWidget {
                           backgroundColor: KiranaNapseTheme.turmeric,
                           foregroundColor: const Color(0xFF4A2E0A),
                         ),
-                        onPressed: () => context.go('/onboarding/store-basics'),
+                        onPressed: () {
+                          context
+                              .read<StoreProvider>()
+                              .setOnboardingNotifications(true);
+                          context.go('/onboarding/store-basics');
+                        },
                         child: Text(
-                          'Enable Notifications',
-                          style: GoogleFonts.hind(fontSize: 14, fontWeight: FontWeight.w700),
+                          'Save reminder preference',
+                          style: GoogleFonts.hind(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ),
@@ -135,12 +163,23 @@ class NotificationPermissionScreen extends StatelessWidget {
                       height: 46,
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: KiranaNapseTheme.sandstone),
+                          side: const BorderSide(
+                            color: KiranaNapseTheme.sandstone,
+                          ),
                         ),
-                        onPressed: () => context.go('/onboarding/store-basics'),
+                        onPressed: () {
+                          context
+                              .read<StoreProvider>()
+                              .setOnboardingNotifications(false);
+                          context.go('/onboarding/store-basics');
+                        },
                         child: Text(
                           'Maybe Later',
-                          style: GoogleFonts.hind(fontSize: 13.5, color: KiranaNapseTheme.juteSoft, fontWeight: FontWeight.w600),
+                          style: GoogleFonts.hind(
+                            fontSize: 13.5,
+                            color: KiranaNapseTheme.juteSoft,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
@@ -189,7 +228,9 @@ class NotificationPermissionScreen extends StatelessWidget {
             height: 4,
             margin: EdgeInsets.only(right: i < total - 1 ? 6 : 0),
             decoration: BoxDecoration(
-              color: isActive ? KiranaNapseTheme.terracotta : KiranaNapseTheme.sandstone,
+              color: isActive
+                  ? KiranaNapseTheme.terracotta
+                  : KiranaNapseTheme.sandstone,
               borderRadius: BorderRadius.circular(2),
             ),
           ),

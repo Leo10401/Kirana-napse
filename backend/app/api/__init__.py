@@ -7,6 +7,7 @@ from fastapi import APIRouter
 from app.api.routes.auth import router as auth_router
 from app.api.routes.stores import router as stores_router
 from app.api.routes.sales import router as sales_router
+from app.api.routes.items import router as items_router
 from app.api.routes.recommendations import router as recommendations_router
 from app.api.routes.device import router as device_router
 from app.api.routes.export import router as export_router
@@ -17,6 +18,7 @@ router = APIRouter()
 router.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 router.include_router(stores_router, prefix="/stores", tags=["Stores"])
 router.include_router(sales_router, prefix="/stores", tags=["Sales Data"])
+router.include_router(items_router, prefix="/stores", tags=["Items"])
 router.include_router(recommendations_router, tags=["Recommendations"])
 router.include_router(device_router, prefix="/stores", tags=["Device & Notifications"])
 router.include_router(export_router, prefix="/stores", tags=["Export"])

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
@@ -14,20 +15,14 @@ class DistributorExportScreen extends StatefulWidget {
   const DistributorExportScreen({super.key});
 
   @override
-  State<DistributorExportScreen> createState() => _DistributorExportScreenState();
+  State<DistributorExportScreen> createState() =>
+      _DistributorExportScreenState();
 }
 
 class _DistributorExportScreenState extends State<DistributorExportScreen> {
   Map<String, dynamic>? _exportData;
   bool _isLoading = true;
-
-  final List<Map<String, dynamic>> _fallbackExportItems = [
-    {'sku_name': 'Atta (5kg)', 'quantity': 15.0, 'unit': 'kg'},
-    {'sku_name': 'Maggi 2-Minute Noodles 70g', 'quantity': 3.0, 'unit': 'box'},
-    {'sku_name': 'Sugar (1kg)', 'quantity': 10.0, 'unit': 'pkt'},
-    {'sku_name': 'Fortune Sunlite Oil 1L', 'quantity': 12.0, 'unit': 'ltr'},
-    {'sku_name': 'Tata Salt 1kg', 'quantity': 24.0, 'unit': 'pkt'},
-  ];
+  String? _error;
 
   @override
   void initState() {
@@ -38,26 +33,52 @@ class _DistributorExportScreenState extends State<DistributorExportScreen> {
   Future<void> _loadExport() async {
     final storeId = context.read<AuthProvider>().storeId;
     if (storeId == null) {
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = false;
+        _error = 'Sign in to load your order list.';
+      });
       return;
     }
     try {
       final data = await ApiClient.getDistributorList(storeId);
+      if (!mounted) return;
       setState(() {
         _exportData = data;
         _isLoading = false;
+        _error = null;
       });
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (!mounted) return;
+      final message = switch (e) {
+        DioException(response: final response)
+            when response?.statusCode == 401 =>
+          'Your session expired. Sign in again to load the order list.',
+        DioException(response: final response)
+            when response?.statusCode == 403 =>
+          'This order list belongs to another store account.',
+        DioException(response: final response)
+            when response?.statusCode == 500 =>
+          'The server could not prepare the order list. Try again.',
+        DioException(response: null) =>
+          'Cannot reach the server. Check your connection and try again.',
+        _ => 'Could not load the order list. Try again.',
+      };
+      setState(() {
+        _isLoading = false;
+        _error = message;
+      });
     }
   }
 
   void _shareViaWhatsApp() {
-    final storeName = _exportData?['store_name'] ?? 'Sharma General Store';
-    final items = _exportData?['items'] as List? ?? _fallbackExportItems;
+    final storeName = _exportData?['store_name'] ?? 'Your store';
+    final items = _exportData?['items'] as List? ?? [];
+    if (items.isEmpty) return;
     final buffer = StringBuffer();
     buffer.writeln('🛒 *Order List — $storeName*');
-    buffer.writeln('📅 Date: ${DateTime.now().toLocal().toString().substring(0, 10)}\n');
+    buffer.writeln(
+      '📅 Date: ${DateTime.now().toLocal().toString().substring(0, 10)}\n',
+    );
     for (int i = 0; i < items.length; i++) {
       final item = items[i];
       final name = item['sku_name'] ?? 'Item';
@@ -71,8 +92,8 @@ class _DistributorExportScreenState extends State<DistributorExportScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final items = _exportData?['items'] as List? ?? _fallbackExportItems;
-    final storeName = _exportData?['store_name'] ?? 'Sharma General Store';
+    final items = _exportData?['items'] as List? ?? [];
+    final storeName = _exportData?['store_name'] ?? 'Your store';
 
     return Scaffold(
       backgroundColor: KiranaNapseTheme.rice,
@@ -91,7 +112,34 @@ class _DistributorExportScreenState extends State<DistributorExportScreen> {
           Expanded(
             child: _isLoading
                 ? const Center(
-                    child: CircularProgressIndicator(color: KiranaNapseTheme.terracotta),
+                    child: CircularProgressIndicator(
+                      color: KiranaNapseTheme.terracotta,
+                    ),
+                  )
+                : _error != null || items.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: KiranaEmptyState(
+                        icon: _error == null
+                            ? Icons.receipt_long_outlined
+                            : Icons.wifi_off_rounded,
+                        title: _error == null
+                            ? 'Order list is empty'
+                            : 'Could not load your order list',
+                        message:
+                            _error ??
+                            'Reorder suggestions will appear here when they are ready to share.',
+                        actionLabel: _error == null ? null : 'Try again',
+                        onAction: _error == null
+                            ? null
+                            : () {
+                                setState(() => _isLoading = true);
+                                _loadExport();
+                              },
+                      ),
+                    ),
                   )
                 : SingleChildScrollView(
                     padding: const EdgeInsets.all(18),
@@ -104,7 +152,10 @@ class _DistributorExportScreenState extends State<DistributorExportScreen> {
                           decoration: BoxDecoration(
                             color: KiranaNapseTheme.riceCard,
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: KiranaNapseTheme.sandstone, width: 1),
+                            border: Border.all(
+                              color: KiranaNapseTheme.sandstone,
+                              width: 1,
+                            ),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -144,7 +195,10 @@ class _DistributorExportScreenState extends State<DistributorExportScreen> {
                               ...items.asMap().entries.map((entry) {
                                 final i = entry.key;
                                 final item = entry.value;
-                                final qty = item['quantity'] ?? item['suggested_qty'] ?? 1;
+                                final qty =
+                                    item['quantity'] ??
+                                    item['suggested_qty'] ??
+                                    1;
                                 final unit = item['unit'] ?? 'pcs';
 
                                 return Padding(
@@ -177,7 +231,8 @@ class _DistributorExportScreenState extends State<DistributorExportScreen> {
                                         style: GoogleFonts.hind(
                                           fontSize: 13.5,
                                           fontWeight: FontWeight.w700,
-                                          color: KiranaNapseTheme.terracottaDark,
+                                          color:
+                                              KiranaNapseTheme.terracottaDark,
                                         ),
                                       ),
                                     ],

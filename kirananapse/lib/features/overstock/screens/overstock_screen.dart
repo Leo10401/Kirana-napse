@@ -16,60 +16,40 @@ class OverstockScreen extends StatefulWidget {
 }
 
 class _OverstockScreenState extends State<OverstockScreen> {
-  final List<Map<String, dynamic>> _fallbackItems = [
-    {
-      'id': 'ov_1',
-      'sku_id': 'sku_cold_cream',
-      'name': 'Cold cream',
-      'reason': 'No sale in 3 weeks — discount suggested',
-      'tagLabel': 'Slow-moving',
-      'tagType': MiniTagType.warn,
-    },
-    {
-      'id': 'ov_2',
-      'sku_id': 'sku_milk',
-      'name': 'Milk packets (500ml)',
-      'reason': '2 days to expiry — return to distributor or discount',
-      'tagLabel': 'Expiring soon',
-      'tagType': MiniTagType.danger,
-    },
-    {
-      'id': 'ov_3',
-      'sku_id': 'sku_biscuits',
-      'name': 'Imported butter cookies',
-      'reason': 'Stop reordering until sales pick up',
-      'tagLabel': 'Slow-moving',
-      'tagType': MiniTagType.warn,
-    },
-    {
-      'id': 'ov_4',
-      'sku_id': 'sku_detergent',
-      'name': 'Detergent bar 250g',
-      'reason': 'Discount applied — sales recovering',
-      'tagLabel': 'Resolved',
-      'tagType': MiniTagType.success,
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<RecommendationProvider>().loadRecommendations();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final rec = context.watch<RecommendationProvider>();
     final backendItems = rec.overstockItems;
 
-    final displayItems = backendItems.isNotEmpty
-        ? backendItems.map((item) {
-            final isExpiry = item['type'] == 'expiry_risk';
-            final isResolved = item['status'] == 'dismissed' || item['status'] == 'resolved';
-            return {
-              'id': item['id'] ?? item['sku_id'],
-              'sku_id': item['sku_id'],
-              'name': item['sku_name'] ?? 'Flagged Item',
-              'reason': item['reason_text'] ?? (isExpiry ? 'Near expiry threshold' : 'High inventory days on hand'),
-              'tagLabel': isResolved ? 'Resolved' : (isExpiry ? 'Expiring soon' : 'Slow-moving'),
-              'tagType': isResolved ? MiniTagType.success : (isExpiry ? MiniTagType.danger : MiniTagType.warn),
-            };
-          }).toList()
-        : _fallbackItems;
+    final displayItems = backendItems.map((item) {
+      final isExpiry = item['type'] == 'expiry_risk';
+      final isResolved =
+          item['status'] == 'dismissed' || item['status'] == 'resolved';
+      return {
+        'id': item['id'] ?? item['sku_id'],
+        'sku_id': item['sku_id'],
+        'name': item['sku_name'] ?? 'Flagged Item',
+        'reason':
+            item['reason_text'] ??
+            (isExpiry
+                ? 'Near expiry threshold'
+                : 'High inventory days on hand'),
+        'tagLabel': isResolved
+            ? 'Resolved'
+            : (isExpiry ? 'Expiring soon' : 'Slow-moving'),
+        'tagType': isResolved
+            ? MiniTagType.success
+            : (isExpiry ? MiniTagType.danger : MiniTagType.warn),
+      };
+    }).toList();
 
     return Scaffold(
       backgroundColor: KiranaNapseTheme.rice,
@@ -98,7 +78,7 @@ class _OverstockScreenState extends State<OverstockScreen> {
               physics: const BouncingScrollPhysics(),
               children: [
                 Text(
-                  '${displayItems.length} ITEMS FLAGGED',
+                  '${displayItems.length} stock alerts',
                   style: GoogleFonts.hind(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
@@ -107,6 +87,28 @@ class _OverstockScreenState extends State<OverstockScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
+
+                if (rec.isLoading && displayItems.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 30),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (displayItems.isEmpty)
+                  KiranaEmptyState(
+                    icon: rec.error == null
+                        ? Icons.spa_outlined
+                        : Icons.wifi_off_rounded,
+                    title: rec.error == null
+                        ? 'No stock alerts'
+                        : 'Could not load alerts',
+                    message:
+                        rec.error ??
+                        'Nothing looks overstocked or near expiry right now.',
+                    actionLabel: rec.error == null ? null : 'Try again',
+                    onAction: rec.error == null
+                        ? null
+                        : () => rec.loadRecommendations(),
+                  ),
 
                 ...displayItems.map((item) {
                   return KiranaItemCard(

@@ -3,10 +3,12 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
+import '../../../app/theme.dart';
 import '../../../core/providers/recommendation_provider.dart';
+import '../../../core/providers/store_provider.dart';
 import '../../../shared/widgets/common_widgets.dart';
 
-/// Home / Today screen matching exact UI design.
+/// Daily overview for the store owner.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -20,126 +22,164 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<RecommendationProvider>().loadRecommendations();
+      context.read<StoreProvider>().loadStore();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final rec = context.watch<RecommendationProvider>();
+    final store = context.watch<StoreProvider>().store;
     final reorders = rec.reorderItems;
     final overstocks = rec.overstockItems;
+    final priorities = [...rec.recommendations]
+      ..sort((a, b) {
+        const rank = {
+          'low_stock': 0,
+          'expiry_risk': 1,
+          'reorder': 2,
+          'overstock': 3,
+        };
+        return (rank[a['type']] ?? 4).compareTo(rank[b['type']] ?? 4);
+      });
 
-    final int reorderCount = reorders.isNotEmpty ? reorders.length : 7;
-    final int overstockCount = overstocks.isNotEmpty ? overstocks.length : 1;
+    final int reorderCount = reorders.length;
+    final int overstockCount = overstocks.length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFDF8F3),
+      backgroundColor: KiranaNapseTheme.rice,
       body: Column(
         children: [
-          // Terracotta Header with + button
           TerracottaAppHeader(
-            title: 'Namaste, Ramesh ji',
-            subtitle: 'Sharma General Store',
-            trailing: GestureDetector(
-              onTap: () => context.push('/sales/add'),
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.22),
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Icon(
-                    Icons.add_rounded,
-                    color: Colors.white,
-                    size: 26,
-                  ),
-                ),
+            title: 'Today',
+            subtitle: store?['store_name'] ?? 'Your store',
+            trailing: IconButton.filledTonal(
+              tooltip: 'Add a sale',
+              onPressed: () => context.push('/sales/add'),
+              style: IconButton.styleFrom(
+                backgroundColor: KiranaNapseTheme.turmeric,
+                foregroundColor: KiranaNapseTheme.jute,
+                minimumSize: const Size(44, 44),
               ),
+              icon: const Icon(Icons.add_rounded),
             ),
-          ),
-
-          // Scalloped Awning decorative border
-          const ScallopAwningTrim(
-            height: 14,
-            scallopColor: Color(0xFFFDF8F3),
-            backgroundColor: Color(0xFFB85834),
           ),
 
           // Scrollable priority feed
           Expanded(
             child: RefreshIndicator(
               onRefresh: () => rec.loadRecommendations(),
-              color: const Color(0xFFB85834),
-              backgroundColor: Colors.white,
+              color: KiranaNapseTheme.terracotta,
+              backgroundColor: KiranaNapseTheme.riceCard,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(18, 16, 18, 28),
-                physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                padding: const EdgeInsets.fromLTRB(18, 24, 18, 28),
+                physics: const BouncingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
+                ),
                 children: [
-                  // Summary KPI Row (7 Items to reorder, 1 Overstocked)
+                  Text(
+                    'Your stock at a glance',
+                    style: GoogleFonts.baloo2(
+                      fontSize: 25,
+                      fontWeight: FontWeight.w700,
+                      color: KiranaNapseTheme.jute,
+                      height: 1.15,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Start with the items that need attention.',
+                    style: GoogleFonts.hind(
+                      fontSize: 13,
+                      color: KiranaNapseTheme.juteSoft,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
                   Row(
                     children: [
                       KiranaSummaryCard(
                         count: '$reorderCount',
-                        label: 'Items to reorder',
+                        label: 'To reorder',
                         variant: SummaryCardVariant.gold,
                         onTap: () => context.go('/reorder'),
                       ),
                       const SizedBox(width: 14),
                       KiranaSummaryCard(
                         count: '$overstockCount',
-                        label: 'Overstocked',
+                        label: 'Stock alerts',
                         variant: SummaryCardVariant.amber,
                         onTap: () => context.push('/overstock'),
                       ),
                     ],
                   ),
 
-                  const SizedBox(height: 26),
-
-                  // Section Title
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: FilledButton.icon(
+                      onPressed: () => context.push('/sales/add'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: KiranaNapseTheme.terracottaDark,
+                        foregroundColor: Colors.white,
+                      ),
+                      icon: const Icon(Icons.add_circle_outline_rounded),
+                      label: const Text('Add a sale'),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
                   Padding(
                     padding: const EdgeInsets.only(left: 2, bottom: 12),
                     child: Text(
-                      'TODAY’S PRIORITY',
-                      style: GoogleFonts.hind(
-                        fontSize: 13,
+                      'Needs your attention',
+                      style: GoogleFonts.baloo2(
+                        fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFF4A3A32),
-                        letterSpacing: 0.6,
+                        color: KiranaNapseTheme.jute,
                       ),
                     ),
                   ),
 
-                  // Item Cards List
-                  if (rec.recommendations.isNotEmpty) ...[
-                    ...rec.recommendations.map((item) {
+                  if (priorities.isNotEmpty) ...[
+                    ...priorities.map((item) {
                       final type = item['type'] ?? 'reorder';
                       final isUrgent = type == 'low_stock' || type == 'urgent';
-                      final isOverstock = type == 'overstock' || type == 'expiry_risk';
-                      final qty = item['suggested_qty'] ?? 0;
-                      final unit = item['unit'] ?? 'pcs';
+                      final isOverstock =
+                          type == 'overstock' || type == 'expiry_risk';
+                      final qty =
+                          item['owner_edited_qty'] ??
+                          item['suggested_qty'] ??
+                          0;
+                      final formattedQty =
+                          qty is num && qty == qty.roundToDouble()
+                          ? qty.toInt().toString()
+                          : qty.toString();
+                      final unit = item['sku_unit'] ?? 'pcs';
 
                       String qtyText;
                       Color qtyColor;
                       KiranaCardIndicator indicator;
 
                       if (isOverstock) {
-                        qtyText = 'Slow-moving';
-                        qtyColor = const Color(0xFFC0822B);
+                        qtyText = type == 'expiry_risk'
+                            ? 'Expiry risk'
+                            : 'Overstock';
+                        qtyColor = KiranaNapseTheme.marigold;
                         indicator = KiranaCardIndicator.watch;
                       } else if (isUrgent) {
-                        qtyText = '+$qty $unit';
-                        qtyColor = const Color(0xFFB83226);
+                        qtyText = '+$formattedQty $unit';
+                        qtyColor = KiranaNapseTheme.chili;
                         indicator = KiranaCardIndicator.urgent;
                       } else {
-                        qtyText = '+$qty $unit';
-                        qtyColor = const Color(0xFF5E8E47);
+                        qtyText = '+$formattedQty $unit';
+                        qtyColor = KiranaNapseTheme.betel;
                         indicator = KiranaCardIndicator.ok;
                       }
 
-                      final rawReason = (item['reason_text'] ?? 'Stock optimization required.') as String;
+                      final rawReason =
+                          (item['reason_text'] ??
+                                  'Stock optimization required.')
+                              as String;
                       String? urgentPrefix;
                       String reasonBody = rawReason;
 
@@ -155,6 +195,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       return KiranaItemCard(
                         name: item['sku_name'] ?? 'Inventory Item',
+                        tag: MiniTag(
+                          label: type == 'low_stock'
+                              ? 'Low stock'
+                              : type == 'expiry_risk'
+                              ? 'Expiring soon'
+                              : type == 'overstock'
+                              ? 'Overstock'
+                              : 'Reorder',
+                          type: isUrgent
+                              ? MiniTagType.danger
+                              : isOverstock
+                              ? MiniTagType.warn
+                              : MiniTagType.success,
+                        ),
                         qtyText: qtyText,
                         qtyColor: qtyColor,
                         urgentPrefix: urgentPrefix,
@@ -167,45 +221,26 @@ class _HomeScreenState extends State<HomeScreen> {
                         },
                       );
                     }),
+                  ] else if (rec.isLoading) ...[
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 28),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
                   ] else ...[
-                    // Pixel-perfect default items matching exact user design
-                    KiranaItemCard(
-                      name: 'Tata Tea Premium 500g',
-                      qtyText: '+32.0 pcs',
-                      qtyColor: const Color(0xFF5E8E47),
-                      indicator: KiranaCardIndicator.ok,
-                      reason:
-                          'Reorder point reached. Current stock (18.0 pcs). Upcoming festival (60% demand surge expected) • Recent daily avg: 3.9 pcs/day',
-                      onTap: () => context.go('/reorder'),
-                    ),
-                    KiranaItemCard(
-                      name: 'Parle-G Gold Biscuits 100g',
-                      qtyText: 'Slow-moving',
-                      qtyColor: const Color(0xFFC0822B),
-                      indicator: KiranaCardIndicator.watch,
-                      reason:
-                          'Overstocked: 80.0 pcs on hand (>3 weeks supply). Consider promotional discount.',
-                      onTap: () => context.push('/overstock'),
-                    ),
-                    KiranaItemCard(
-                      name: 'Mother Dairy Full Cream Milk 500ml',
-                      qtyText: '+307.0 pcs',
-                      qtyColor: const Color(0xFFB83226),
-                      indicator: KiranaCardIndicator.urgent,
-                      urgentPrefix: 'Urgent: Stockout risk in 1 days.',
-                      reason:
-                          'Upcoming festival (60% demand surge expected) • Recent daily avg: 24.6 pcs/day',
-                      onTap: () => context.go('/reorder'),
-                    ),
-                    KiranaItemCard(
-                      name: 'Maggi 2-Minute Noodles 70g',
-                      qtyText: '+185.0 pcs',
-                      qtyColor: const Color(0xFFB83226),
-                      indicator: KiranaCardIndicator.urgent,
-                      urgentPrefix: 'Urgent: Stockout risk in 1 days.',
-                      reason:
-                          'Upcoming festival (60% demand surge expected) • Recent daily avg: 14.2 pcs/day',
-                      onTap: () => context.go('/reorder'),
+                    KiranaEmptyState(
+                      icon: rec.error == null
+                          ? Icons.inventory_2_outlined
+                          : Icons.wifi_off_rounded,
+                      title: rec.error == null
+                          ? 'All clear for now'
+                          : 'Could not load your stock',
+                      message:
+                          rec.error ??
+                          'No alerts are ready yet. Add sales and stock details to build your store history.',
+                      actionLabel: rec.error == null ? null : 'Try again',
+                      onAction: rec.error == null
+                          ? null
+                          : () => rec.loadRecommendations(),
                     ),
                   ],
                 ],

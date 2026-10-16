@@ -58,6 +58,7 @@ class AuthProvider extends ChangeNotifier {
       _storeId = data['store_id'];
       ApiClient.setToken(_token!);
       if (_storeId != null) ApiClient.setStoreId(_storeId!);
+      _isOnboarded = false;
       await _saveToPrefs();
       _isLoading = false;
       notifyListeners();
@@ -92,6 +93,14 @@ class AuthProvider extends ChangeNotifier {
       _storeId = data['store_id'];
       ApiClient.setToken(_token!);
       if (_storeId != null) ApiClient.setStoreId(_storeId!);
+      if (_storeId != null) {
+        try {
+          final store = await ApiClient.getStore(_storeId!);
+          _isOnboarded = store['status'] == 'active';
+        } catch (_) {
+          // Keep the locally saved state if the profile cannot be loaded.
+        }
+      }
       await _saveToPrefs();
       _isLoading = false;
       notifyListeners();

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 import '../../../app/theme.dart';
+import '../../../core/providers/store_provider.dart';
 import '../../../shared/widgets/common_widgets.dart';
 
 /// Onboarding Step 1: Language selection screen matching the market-rooted design.
@@ -34,7 +36,10 @@ class _LanguageScreenState extends State<LanguageScreen> {
             const ToranGarland(height: 16),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 20,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -106,11 +111,15 @@ class _LanguageScreenState extends State<LanguageScreen> {
                               : lang['label']!;
 
                           return GestureDetector(
-                            onTap: () => setState(() => _selectedCode = lang['code']!),
+                            onTap: () =>
+                                setState(() => _selectedCode = lang['code']!),
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 180),
                               width: double.infinity,
-                              padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 16),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 13,
+                                horizontal: 16,
+                              ),
                               decoration: BoxDecoration(
                                 color: isSelected
                                     ? KiranaNapseTheme.turmericTint
@@ -128,7 +137,9 @@ class _LanguageScreenState extends State<LanguageScreen> {
                                   display,
                                   style: GoogleFonts.hind(
                                     fontSize: 14,
-                                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w700
+                                        : FontWeight.w600,
                                     color: isSelected
                                         ? KiranaNapseTheme.turmericDark
                                         : KiranaNapseTheme.jute,
@@ -156,7 +167,12 @@ class _LanguageScreenState extends State<LanguageScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        onPressed: () => context.go('/onboarding/notifications'),
+                        onPressed: () {
+                          context.read<StoreProvider>().setOnboardingLanguage(
+                            _selectedCode,
+                          );
+                          context.go('/onboarding/notifications');
+                        },
                         child: Text(
                           'Continue',
                           style: GoogleFonts.hind(

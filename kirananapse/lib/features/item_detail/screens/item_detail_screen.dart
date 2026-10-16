@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 import '../../../app/theme.dart';
+import '../../../core/providers/recommendation_provider.dart';
 import '../../../shared/widgets/common_widgets.dart';
 
-/// Item Detail screen — sales history, forecast reason, edit (AppFlow §7 Screen 6).
+/// Shows the recommendation selected from the current dashboard or list.
 class ItemDetailScreen extends StatelessWidget {
   final String itemId;
 
@@ -13,6 +15,21 @@ class ItemDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Map<String, dynamic>? item;
+    for (final candidate
+        in context.watch<RecommendationProvider>().recommendations) {
+      if (candidate['sku_id'] == itemId) {
+        item = candidate;
+        break;
+      }
+    }
+
+    final name = item?['sku_name']?.toString() ?? 'Item';
+    final type = item?['type']?.toString() ?? '';
+    final isReorder = type == 'reorder' || type == 'low_stock';
+    final quantity = item?['owner_edited_qty'] ?? item?['suggested_qty'] ?? 0;
+    final unit = item?['sku_unit']?.toString() ?? 'pcs';
+
     return Scaffold(
       backgroundColor: KiranaNapseTheme.rice,
       body: Column(
@@ -21,141 +38,122 @@ class ItemDetailScreen extends StatelessWidget {
             title: 'Item Detail',
             showBack: true,
             onBack: () => context.pop(),
-            trailing: GestureDetector(
-              onTap: () => context.push('/feedback/$itemId'),
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.flag_outlined, color: Color(0xFFFBE9DE), size: 18),
-              ),
-            ),
+            trailing: item == null
+                ? null
+                : IconButton(
+                    tooltip: 'Flag this recommendation',
+                    onPressed: () => context.push('/feedback/${item!['id']}'),
+                    icon: const Icon(Icons.flag_outlined, color: Colors.white),
+                  ),
           ),
           const ToranGarland(height: 12, opacity: 0.8),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(18),
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Item header card
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: KiranaNapseTheme.riceCard,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: KiranaNapseTheme.sandstone, width: 1),
-                    ),
-                    child: Column(
+              child: item == null
+                  ? Text(
+                      'This recommendation is no longer available.',
+                      style: GoogleFonts.hind(
+                        fontSize: 14,
+                        color: KiranaNapseTheme.juteSoft,
+                      ),
+                    )
+                  : Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(9),
-                              decoration: BoxDecoration(
-                                color: KiranaNapseTheme.turmericTint,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(Icons.inventory_2_outlined, color: KiranaNapseTheme.turmericDark, size: 22),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: KiranaNapseTheme.riceCard,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: KiranaNapseTheme.sandstone,
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Atta (5kg Chakki)',
-                                    style: GoogleFonts.baloo2(fontSize: 18, fontWeight: FontWeight.w700, color: KiranaNapseTheme.jute),
-                                  ),
-                                  Text(
-                                    'Grocery / Staples • 5kg pack',
-                                    style: GoogleFonts.hind(fontSize: 12, color: KiranaNapseTheme.juteSoft),
-                                  ),
-                                ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name,
+                                style: GoogleFonts.baloo2(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                  color: KiranaNapseTheme.jute,
+                                ),
                               ),
-                            ),
-                          ],
+                              Text(
+                                item['sku_category']?.toString() ??
+                                    'Inventory item',
+                                style: GoogleFonts.hind(
+                                  fontSize: 12,
+                                  color: KiranaNapseTheme.juteSoft,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                isReorder
+                                    ? 'Suggested order: $quantity $unit'
+                                    : type == 'expiry_risk'
+                                    ? 'Expiry risk'
+                                    : 'Overstock alert',
+                                style: GoogleFonts.hind(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: KiranaNapseTheme.terracottaDark,
+                                ),
+                              ),
+                              if (item['cold_start'] == true)
+                                Text(
+                                  'Early estimate based on limited sales history',
+                                  style: GoogleFonts.hind(
+                                    fontSize: 12,
+                                    color: KiranaNapseTheme.juteSoft,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 14),
-                        const Divider(color: KiranaNapseTheme.sandstone),
-                        const SizedBox(height: 10),
-                        _detailRow('Suggested Reorder', '15 packs', KiranaNapseTheme.terracottaDark),
+                        const SizedBox(height: 20),
+                        Text(
+                          'WHY THIS RECOMMENDATION',
+                          style: GoogleFonts.hind(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: KiranaNapseTheme.juteSoft,
+                          ),
+                        ),
                         const SizedBox(height: 8),
-                        _detailRow('Current Stock On Hand', '3 packs (Low Stock)', KiranaNapseTheme.chili),
-                        const SizedBox(height: 8),
-                        _detailRow('Supplier Lead Time', '2 days', KiranaNapseTheme.juteSoft),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Forecast explanation
-                  Text(
-                    'WHY THIS RECOMMENDATION',
-                    style: GoogleFonts.hind(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                      color: KiranaNapseTheme.juteSoft,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: KiranaNapseTheme.turmericTint,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: KiranaNapseTheme.turmeric.withValues(alpha: 0.4)),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.auto_awesome_rounded, color: KiranaNapseTheme.turmericDark, size: 20),
-                        const SizedBox(width: 10),
-                        Expanded(
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: KiranaNapseTheme.turmericTint,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           child: Text(
-                            '40% more sold than usual last week. Upcoming festival demand surge expected with 2 days supplier turnaround.',
-                            style: GoogleFonts.hind(fontSize: 12.5, color: KiranaNapseTheme.jute, height: 1.35),
+                            item['reason_text']?.toString() ??
+                                'No explanation available.',
+                            style: GoogleFonts.hind(
+                              fontSize: 13,
+                              color: KiranaNapseTheme.jute,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () => context.pop(),
+                            child: const Text('Back to List'),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Action CTA
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: KiranaNapseTheme.turmeric,
-                        foregroundColor: const Color(0xFF4A2E0A),
-                      ),
-                      onPressed: () => context.pop(),
-                      child: Text('Back to List', style: GoogleFonts.hind(fontSize: 14, fontWeight: FontWeight.w700)),
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _detailRow(String label, String value, Color color) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: GoogleFonts.hind(fontSize: 13, color: KiranaNapseTheme.juteSoft)),
-        Text(value, style: GoogleFonts.hind(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
-      ],
     );
   }
 }

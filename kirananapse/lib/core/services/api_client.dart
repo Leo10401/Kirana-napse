@@ -18,7 +18,10 @@ class ApiClient {
   }
 
   /// Create a fresh Dio instance with clean base configuration
-  static Dio _createDio(String baseUrl, {Duration timeout = const Duration(seconds: 4)}) {
+  static Dio _createDio(
+    String baseUrl, {
+    Duration timeout = const Duration(seconds: 4),
+  }) {
     final cleanBase = baseUrl.endsWith('/') ? baseUrl : '$baseUrl/';
     final dio = Dio(
       BaseOptions(
@@ -41,7 +44,8 @@ class ApiClient {
           error.type == DioExceptionType.connectionTimeout ||
           error.type == DioExceptionType.sendTimeout ||
           error.type == DioExceptionType.receiveTimeout ||
-          (error.response?.statusCode != null && error.response!.statusCode! >= 502);
+          (error.response?.statusCode != null &&
+              error.response!.statusCode! >= 502);
     }
     return false;
   }
@@ -55,7 +59,10 @@ class ApiClient {
   }) async {
     final cleanPath = path.startsWith('/') ? path.substring(1) : path;
     final primaryUrl = AppConfig.baseUrl;
-    final primaryDio = _createDio(primaryUrl, timeout: const Duration(seconds: 4));
+    final primaryDio = _createDio(
+      primaryUrl,
+      timeout: const Duration(seconds: 4),
+    );
 
     try {
       return await primaryDio.request<T>(
@@ -76,7 +83,10 @@ class ApiClient {
           AppConfig.isLocalUrl(primaryUrl) &&
           _isConnectionError(error)) {
         // Fallback to deployed Render cloud (30s timeout for free-tier wake-up)
-        final fallbackDio = _createDio(AppConfig.deployedUrl, timeout: const Duration(seconds: 30));
+        final fallbackDio = _createDio(
+          AppConfig.deployedUrl,
+          timeout: const Duration(seconds: 30),
+        );
         return await fallbackDio.request<T>(
           cleanPath,
           data: data,
@@ -94,7 +104,9 @@ class ApiClient {
   }
 
   /// Ping the /health endpoint of a target base URL
-  static Future<Map<String, dynamic>> testHealthConnection([String? targetBaseUrl]) async {
+  static Future<Map<String, dynamic>> testHealthConnection([
+    String? targetBaseUrl,
+  ]) async {
     String effectiveUrl = targetBaseUrl ?? AppConfig.baseUrl;
     while (effectiveUrl.endsWith('/')) {
       effectiveUrl = effectiveUrl.substring(0, effectiveUrl.length - 1);
@@ -117,77 +129,174 @@ class ApiClient {
   }
 
   // ─── Auth ───
-  static Future<Map<String, dynamic>> register(String phone, String password, String? name) async {
-    final Map<String, dynamic> body = {
-      'phone': phone,
-      'password': password,
-    };
+  static Future<Map<String, dynamic>> register(
+    String phone,
+    String password,
+    String? name,
+  ) async {
+    final Map<String, dynamic> body = {'phone': phone, 'password': password};
     if (name != null) body['name'] = name;
-    final response = await _send<Map<String, dynamic>>('POST', 'auth/register', data: body);
+    final response = await _send<Map<String, dynamic>>(
+      'POST',
+      'auth/register',
+      data: body,
+    );
     return response.data!;
   }
 
-  static Future<Map<String, dynamic>> login(String phone, String password) async {
-    final response = await _send<Map<String, dynamic>>('POST', 'auth/login', data: {
-      'phone': phone,
-      'password': password,
-    });
+  static Future<Map<String, dynamic>> login(
+    String phone,
+    String password,
+  ) async {
+    final response = await _send<Map<String, dynamic>>(
+      'POST',
+      'auth/login',
+      data: {'phone': phone, 'password': password},
+    );
     return response.data!;
   }
 
   // ─── Store ───
-  static Future<Map<String, dynamic>> completeOnboarding(String storeId, Map<String, dynamic> data) async {
-    final response = await _send<Map<String, dynamic>>('POST', 'stores/$storeId/onboarding', data: data);
+  static Future<Map<String, dynamic>> completeOnboarding(
+    String storeId,
+    Map<String, dynamic> data,
+  ) async {
+    final response = await _send<Map<String, dynamic>>(
+      'POST',
+      'stores/$storeId/onboarding',
+      data: data,
+    );
     return response.data!;
   }
 
   static Future<Map<String, dynamic>> getStore(String storeId) async {
-    final response = await _send<Map<String, dynamic>>('GET', 'stores/$storeId');
+    final response = await _send<Map<String, dynamic>>(
+      'GET',
+      'stores/$storeId',
+    );
     return response.data!;
   }
 
-  static Future<Map<String, dynamic>> updateStore(String storeId, Map<String, dynamic> data) async {
-    final response = await _send<Map<String, dynamic>>('PATCH', 'stores/$storeId', data: data);
+  static Future<Map<String, dynamic>> updateStore(
+    String storeId,
+    Map<String, dynamic> data,
+  ) async {
+    final response = await _send<Map<String, dynamic>>(
+      'PATCH',
+      'stores/$storeId',
+      data: data,
+    );
     return response.data!;
   }
 
   // ─── Recommendations ───
-  static Future<Map<String, dynamic>> getTodayRecommendations(String storeId) async {
-    final response = await _send<Map<String, dynamic>>('GET', 'stores/$storeId/recommendations/today');
+  static Future<Map<String, dynamic>> getTodayRecommendations(
+    String storeId,
+  ) async {
+    final response = await _send<Map<String, dynamic>>(
+      'GET',
+      'stores/$storeId/recommendations/today',
+    );
     return response.data!;
   }
 
-  static Future<Map<String, dynamic>> updateRecommendation(String recId, Map<String, dynamic> data) async {
-    final response = await _send<Map<String, dynamic>>('PATCH', 'recommendations/$recId', data: data);
+  static Future<Map<String, dynamic>> updateRecommendation(
+    String recId,
+    Map<String, dynamic> data,
+  ) async {
+    final response = await _send<Map<String, dynamic>>(
+      'PATCH',
+      'recommendations/$recId',
+      data: data,
+    );
     return response.data!;
   }
 
-  static Future<Map<String, dynamic>> flagRecommendation(String recId, Map<String, dynamic> data) async {
-    final response = await _send<Map<String, dynamic>>('POST', 'recommendations/$recId/flag', data: data);
+  static Future<Map<String, dynamic>> flagRecommendation(
+    String recId,
+    Map<String, dynamic> data,
+  ) async {
+    final response = await _send<Map<String, dynamic>>(
+      'POST',
+      'recommendations/$recId/flag',
+      data: data,
+    );
     return response.data!;
   }
 
   // ─── Sales ───
-  static Future<Map<String, dynamic>> addSalesEntry(String storeId, Map<String, dynamic> data) async {
-    final response = await _send<Map<String, dynamic>>('POST', 'stores/$storeId/sales', data: data);
+  static Future<List<dynamic>> getItems(String storeId) async {
+    final response = await _send<List<dynamic>>('GET', 'stores/$storeId/items');
     return response.data!;
   }
 
-  static Future<List<dynamic>> getSalesHistory(String storeId, {String? skuId, int limit = 50}) async {
+  static Future<Map<String, dynamic>> createItem(
+    String storeId,
+    Map<String, dynamic> data,
+  ) async {
+    final response = await _send<Map<String, dynamic>>(
+      'POST',
+      'stores/$storeId/items',
+      data: data,
+    );
+    return response.data!;
+  }
+
+  static Future<void> updateStock(
+    String storeId,
+    String skuId,
+    double quantity,
+  ) async {
+    await _send<Map<String, dynamic>>(
+      'POST',
+      'stores/$storeId/stock',
+      data: {'sku_id': skuId, 'quantity_on_hand': quantity},
+    );
+  }
+
+  static Future<Map<String, dynamic>> addSalesEntry(
+    String storeId,
+    Map<String, dynamic> data,
+  ) async {
+    final response = await _send<Map<String, dynamic>>(
+      'POST',
+      'stores/$storeId/sales',
+      data: data,
+    );
+    return response.data!;
+  }
+
+  static Future<List<dynamic>> getSalesHistory(
+    String storeId, {
+    String? skuId,
+    int limit = 50,
+  }) async {
     final Map<String, dynamic> query = {'limit': limit};
     if (skuId != null) query['sku_id'] = skuId;
-    final response = await _send<List<dynamic>>('GET', 'stores/$storeId/sales', queryParameters: query);
+    final response = await _send<List<dynamic>>(
+      'GET',
+      'stores/$storeId/sales',
+      queryParameters: query,
+    );
     return response.data!;
   }
 
   // ─── Export ───
   static Future<Map<String, dynamic>> getDistributorList(String storeId) async {
-    final response = await _send<Map<String, dynamic>>('GET', 'stores/$storeId/export/distributor-list');
+    final response = await _send<Map<String, dynamic>>(
+      'GET',
+      'stores/$storeId/export/distributor-list',
+    );
     return response.data!;
   }
 
   // ─── Device ───
-  static Future<void> registerDeviceToken(String storeId, String fcmToken, {String? deviceModel, String? osVersion}) async {
+  static Future<void> registerDeviceToken(
+    String storeId,
+    String fcmToken, {
+    String? deviceModel,
+    String? osVersion,
+  }) async {
     final Map<String, dynamic> body = {'fcm_token': fcmToken};
     if (deviceModel != null) body['device_model'] = deviceModel;
     if (osVersion != null) body['os_version'] = osVersion;

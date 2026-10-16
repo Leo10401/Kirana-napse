@@ -19,25 +19,10 @@ from app.core.security import get_current_user
 router = APIRouter()
 
 
-async def _get_or_create_sku(
-    db: AsyncIOMotorDatabase, store_id: str, name: str, category: str | None, unit: str
-) -> dict:
-    """Find an existing SKU by name or create a new one."""
-    sku = await db.skus.find_one({"store_id": store_id, "name": name})
+async def _require_sku(db: AsyncIOMotorDatabase, store_id: str, sku_id: str) -> dict:
+    sku = await db.skus.find_one({"store_id": store_id, "id": sku_id})
     if not sku:
-        sku_id = str(uuid.uuid4())
-        sku = {
-            "id": sku_id,
-            "store_id": store_id,
-            "name": name,
-            "category": category,
-            "unit": unit,
-            "is_perishable": False,
-            "expiry_date": None,
-            "supplier_lead_time_days": 2,
-            "created_at": datetime.now(timezone.utc),
-        }
-        await db.skus.insert_one(sku)
+        raise HTTPException(status_code=404, detail="Item not found in this store")
     return sku
 
 
@@ -52,9 +37,7 @@ async def add_sales_entry(
     if current_user["store_id"] != store_id:
         raise HTTPException(status_code=403, detail="Not authorized for this store")
 
-    sku = await _get_or_create_sku(
-        db, store_id, request.sku_name, request.sku_category, request.unit
-    )
+    sku = await _require_sku(db, store_id, request.sku_id)
 
     record_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc)
@@ -99,14 +82,15 @@ async def bulk_import_sales(
     now = datetime.now(timezone.utc)
     records_to_insert = []
 
+    sku_ids = {entry.sku_id for entry in request.records}
+    for sku_id in sku_ids:
+        await _require_sku(db, store_id, sku_id)
+
     for entry in request.records:
-        sku = await _get_or_create_sku(
-            db, store_id, entry.sku_name, entry.sku_category, entry.unit
-        )
         record = {
             "id": str(uuid.uuid4()),
             "store_id": store_id,
-            "sku_id": sku["id"],
+            "sku_id": entry.sku_id,
             "date": entry.date.isoformat(),
             "quantity_sold": entry.quantity_sold,
             "revenue": entry.revenue,
@@ -179,6 +163,7 @@ async def update_stock_level(
     if current_user["store_id"] != store_id:
         raise HTTPException(status_code=403, detail="Not authorized for this store")
 
+    await _require_sku(db, store_id, request.sku_id)
     today_str = date.today().isoformat()
     now = datetime.now(timezone.utc)
 

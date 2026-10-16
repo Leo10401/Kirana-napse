@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../app/theme.dart';
 
-/// Decorative Scallop Awning Trim beneath the Terracotta Header.
+/// Decorative awning trim retained for screens that use the market motif.
 class ScallopAwningTrim extends StatelessWidget {
   final double height;
   final Color scallopColor;
@@ -12,7 +12,7 @@ class ScallopAwningTrim extends StatelessWidget {
     super.key,
     this.height = 16.0,
     this.scallopColor = const Color(0xFFFDF8F3),
-    this.backgroundColor = const Color(0xFFB85834),
+    this.backgroundColor = KiranaNapseTheme.ledgerDark,
   });
 
   @override
@@ -41,7 +41,7 @@ class _ScallopAwningPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Fill top section with terracotta
+    // Fill the top section with brand ink.
     final bgPaint = Paint()
       ..color = backgroundColor
       ..style = PaintingStyle.fill;
@@ -98,11 +98,7 @@ class ToranGarland extends StatelessWidget {
   final double height;
   final double opacity;
 
-  const ToranGarland({
-    super.key,
-    this.height = 16,
-    this.opacity = 0.9,
-  });
+  const ToranGarland({super.key, this.height = 16, this.opacity = 0.9});
 
   @override
   Widget build(BuildContext context) {
@@ -111,9 +107,7 @@ class ToranGarland extends StatelessWidget {
       child: SizedBox(
         height: height,
         width: double.infinity,
-        child: CustomPaint(
-          painter: _ToranPainter(),
-        ),
+        child: CustomPaint(painter: _ToranPainter()),
       ),
     );
   }
@@ -144,7 +138,7 @@ class _ToranPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-/// Terracotta Top App Header with Greeting / Title and circular action button.
+/// Compact app header with a clear back action and optional screen action.
 class TerracottaAppHeader extends StatelessWidget {
   final String title;
   final String? subtitle;
@@ -166,28 +160,32 @@ class TerracottaAppHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFFB85834),
-      padding: EdgeInsets.fromLTRB(18, MediaQuery.of(context).padding.top + 14, 18, 16),
+      decoration: const BoxDecoration(
+        color: KiranaNapseTheme.terracottaDark,
+        border: Border(
+          bottom: BorderSide(color: KiranaNapseTheme.turmeric, width: 3),
+        ),
+      ),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        MediaQuery.of(context).padding.top + 12,
+        20,
+        18,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           if (showBack)
             Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: GestureDetector(
-                onTap: onBack ?? () => Navigator.of(context).maybePop(),
-                child: const Icon(
-                  Icons.arrow_back_rounded,
-                  color: Colors.white,
-                  size: 24,
-                ),
+              padding: const EdgeInsets.only(right: 8),
+              child: IconButton(
+                tooltip: 'Go back',
+                onPressed: onBack ?? () => Navigator.of(context).maybePop(),
+                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
               ),
             )
           else if (leading != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: leading!,
-            ),
+            Padding(padding: const EdgeInsets.only(right: 12), child: leading!),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,11 +193,13 @@ class TerracottaAppHeader extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.hind(
-                    fontSize: 21,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.baloo2(
+                    fontSize: 23,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
-                    height: 1.15,
+                    height: 1.1,
                   ),
                 ),
                 if (subtitle != null && subtitle!.isNotEmpty)
@@ -207,32 +207,19 @@ class TerracottaAppHeader extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(
                       subtitle!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.hind(
-                        fontSize: 14,
+                        fontSize: 13,
                         fontWeight: FontWeight.w400,
-                        color: const Color(0xFFF2DDD4),
+                        color: const Color(0xFFDDEAE1),
                       ),
                     ),
                   ),
               ],
             ),
           ),
-          if (trailing != null)
-            trailing!
-          else
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.22),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.add_rounded,
-                color: Colors.white,
-                size: 26,
-              ),
-            ),
+          ?trailing,
         ],
       ),
     );
@@ -258,40 +245,138 @@ class KiranaSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isReorder = variant == SummaryCardVariant.gold;
+    final accent = isReorder
+        ? KiranaNapseTheme.terracottaDark
+        : KiranaNapseTheme.marigold;
+    final surface = isReorder
+        ? KiranaNapseTheme.terracottaTint
+        : KiranaNapseTheme.marigoldTint;
     return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFDF0E7),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFFEED7C8), width: 1.2),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                count,
-                style: GoogleFonts.hind(
-                  fontSize: 34,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFFB85834),
-                  height: 1.05,
+      child: Material(
+        color: surface,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 126),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: accent.withValues(alpha: 0.22)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Icon(
+                      isReorder
+                          ? Icons.inventory_2_outlined
+                          : Icons.hourglass_bottom_rounded,
+                      color: accent,
+                      size: 20,
+                    ),
+                    Icon(Icons.arrow_outward_rounded, color: accent, size: 18),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: GoogleFonts.hind(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF4A3A32),
+                Text(
+                  count,
+                  style: GoogleFonts.baloo2(
+                    fontSize: 38,
+                    fontWeight: FontWeight.w700,
+                    color: accent,
+                    height: 1,
+                  ),
                 ),
-              ),
-            ],
+                Text(
+                  label,
+                  maxLines: 2,
+                  style: GoogleFonts.hind(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: KiranaNapseTheme.jute,
+                    height: 1.2,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Clear next step when a list has no data or cannot load.
+class KiranaEmptyState extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  const KiranaEmptyState({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: KiranaNapseTheme.riceCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: KiranaNapseTheme.sandstone),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: const BoxDecoration(
+              color: KiranaNapseTheme.terracottaTint,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: KiranaNapseTheme.terracottaDark, size: 22),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: GoogleFonts.baloo2(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: KiranaNapseTheme.jute,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            message,
+            style: GoogleFonts.hind(
+              fontSize: 13,
+              color: KiranaNapseTheme.juteSoft,
+              height: 1.4,
+            ),
+          ),
+          if (onAction != null && actionLabel != null) ...[
+            const SizedBox(height: 16),
+            TextButton.icon(
+              onPressed: onAction,
+              icon: const Icon(Icons.arrow_forward_rounded),
+              label: Text(actionLabel!),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -332,116 +417,121 @@ class KiranaItemCard extends StatelessWidget {
 
     switch (indicator) {
       case KiranaCardIndicator.urgent:
-        indicatorColor = const Color(0xFFB83226);
-        defaultQtyColor = const Color(0xFFB83226);
+        indicatorColor = KiranaNapseTheme.chili;
+        defaultQtyColor = KiranaNapseTheme.chili;
         break;
       case KiranaCardIndicator.watch:
-        indicatorColor = const Color(0xFFC0822B);
-        defaultQtyColor = const Color(0xFFB97A21);
+        indicatorColor = KiranaNapseTheme.marigold;
+        defaultQtyColor = KiranaNapseTheme.marigold;
         break;
       case KiranaCardIndicator.ok:
-        indicatorColor = const Color(0xFF5E8E47);
-        defaultQtyColor = const Color(0xFF4C8035);
+        indicatorColor = KiranaNapseTheme.betel;
+        defaultQtyColor = KiranaNapseTheme.betel;
         break;
     }
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
-        decoration: BoxDecoration(
-          color: Colors.white,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Material(
+        color: KiranaNapseTheme.riceCard,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFEBDDD2), width: 1.0),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // 5px left-border indicator strip
-              Container(
-                width: 5.5,
-                color: indicatorColor,
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (tag != null) ...[
-                        tag!,
-                        const SizedBox(height: 6),
-                      ],
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: KiranaNapseTheme.sandstone, width: 1.0),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // 5px left-border indicator strip
+                  Container(width: 5.5, color: indicatorColor),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Text(
-                              name,
-                              style: GoogleFonts.hind(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF1E1A17),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          if (qtyText != null && qtyText!.isNotEmpty)
-                            Text(
-                              qtyText!,
-                              style: GoogleFonts.hind(
-                                fontSize: 15.5,
-                                fontWeight: FontWeight.w700,
-                                color: qtyColor ?? defaultQtyColor,
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      if (urgentPrefix != null && urgentPrefix!.isNotEmpty)
-                        RichText(
-                          text: TextSpan(
-                            style: GoogleFonts.hind(
-                              fontSize: 13,
-                              color: const Color(0xFF4A3A32),
-                              height: 1.4,
-                            ),
+                          if (tag != null) ...[tag!, const SizedBox(height: 6)],
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              TextSpan(
-                                text: urgentPrefix!,
-                                style: GoogleFonts.hind(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFFB83226),
+                              Expanded(
+                                child: Text(
+                                  name,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.hind(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: KiranaNapseTheme.jute,
+                                  ),
                                 ),
                               ),
-                              TextSpan(text: ' $reason'),
+                              const SizedBox(width: 8),
+                              if (qtyText != null && qtyText!.isNotEmpty)
+                                Text(
+                                  qtyText!,
+                                  style: GoogleFonts.hind(
+                                    fontSize: 15.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: qtyColor ?? defaultQtyColor,
+                                  ),
+                                ),
                             ],
                           ),
-                        )
-                      else
-                        Text(
-                          reason,
-                          style: GoogleFonts.hind(
-                            fontSize: 13,
-                            color: const Color(0xFF4A3A32),
-                            height: 1.4,
-                          ),
-                        ),
-                      if (actions != null && actions!.isNotEmpty) ...[
-                        const SizedBox(height: 10),
-                        Row(
-                          children: actions!,
-                        ),
-                      ],
-                    ],
+                          const SizedBox(height: 6),
+                          if (urgentPrefix != null && urgentPrefix!.isNotEmpty)
+                            RichText(
+                              text: TextSpan(
+                                style: GoogleFonts.hind(
+                                  fontSize: 13,
+                                  color: KiranaNapseTheme.juteSoft,
+                                  height: 1.4,
+                                ),
+                                children: [
+                                  TextSpan(
+                                    text: urgentPrefix!,
+                                    style: GoogleFonts.hind(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: KiranaNapseTheme.chili,
+                                    ),
+                                  ),
+                                  TextSpan(text: ' $reason'),
+                                ],
+                              ),
+                            )
+                          else
+                            Text(
+                              reason,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.hind(
+                                fontSize: 13,
+                                color: KiranaNapseTheme.juteSoft,
+                                height: 1.4,
+                              ),
+                            ),
+                          if (actions != null && actions!.isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            Row(children: actions!),
+                          ],
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -464,28 +554,47 @@ class MiniButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(right: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: filled ? KiranaNapseTheme.betel : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: filled ? KiranaNapseTheme.betel : KiranaNapseTheme.sandstone,
-            width: 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.hind(
-            fontSize: 10.5,
-            fontWeight: FontWeight.w600,
-            color: filled ? const Color(0xFFEFF4E7) : KiranaNapseTheme.jute,
-          ),
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: filled
+          ? FilledButton(
+              onPressed: onTap,
+              style: FilledButton.styleFrom(
+                backgroundColor: KiranaNapseTheme.betel,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(0, 44),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                label,
+                style: GoogleFonts.hind(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            )
+          : OutlinedButton(
+              onPressed: onTap,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: KiranaNapseTheme.jute,
+                minimumSize: const Size(0, 44),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                side: const BorderSide(color: KiranaNapseTheme.sandstone),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                label,
+                style: GoogleFonts.hind(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
     );
   }
 }
@@ -497,11 +606,7 @@ class MiniTag extends StatelessWidget {
   final String label;
   final MiniTagType type;
 
-  const MiniTag({
-    super.key,
-    required this.label,
-    this.type = MiniTagType.warn,
-  });
+  const MiniTag({super.key, required this.label, this.type = MiniTagType.warn});
 
   @override
   Widget build(BuildContext context) {
@@ -528,7 +633,7 @@ class MiniTag extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(999),
@@ -536,7 +641,7 @@ class MiniTag extends StatelessWidget {
       child: Text(
         label,
         style: GoogleFonts.hind(
-          fontSize: 9.5,
+          fontSize: 11,
           fontWeight: FontWeight.w700,
           color: fg,
         ),
@@ -564,7 +669,7 @@ class StatusChip extends StatelessWidget {
       case 'resolved':
         return const MiniTag(label: 'Ordered', type: MiniTagType.success);
       default:
-        return MiniTag(label: status.toUpperCase(), type: MiniTagType.pending);
+        return MiniTag(label: status, type: MiniTagType.pending);
     }
   }
 }
@@ -575,12 +680,7 @@ class GlassCard extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final VoidCallback? onTap;
 
-  const GlassCard({
-    super.key,
-    required this.child,
-    this.padding,
-    this.onTap,
-  });
+  const GlassCard({super.key, required this.child, this.padding, this.onTap});
 
   @override
   Widget build(BuildContext context) {

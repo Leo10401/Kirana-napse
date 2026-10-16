@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../../app/theme.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/providers/store_provider.dart';
 import '../../../core/services/api_client.dart';
 import '../../../core/services/app_config.dart';
 import '../../../shared/widgets/common_widgets.dart';
@@ -19,15 +20,25 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<StoreProvider>().loadStore();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final store = context.watch<StoreProvider>().store;
+    final storeName = store?['store_name']?.toString() ?? 'Your store';
+    final city = store?['city']?.toString() ?? 'Not set';
+    final category = store?['category']?.toString() ?? 'Not set';
+    final notificationsEnabled = store?['notification_enabled'] == true;
     return Scaffold(
       backgroundColor: KiranaNapseTheme.rice,
       body: Column(
         children: [
-          const TerracottaAppHeader(
-            title: 'Settings',
-            subtitle: 'Sharma General Store',
-          ),
+          TerracottaAppHeader(title: 'Settings', subtitle: storeName),
           const ToranGarland(height: 12, opacity: 0.8),
           Expanded(
             child: SingleChildScrollView(
@@ -38,9 +49,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   // Store profile
                   _sectionTitle('Store Profile'),
-                  _settingsTile(Icons.store_rounded, 'Store Name', 'Sharma General Store', onTap: () {}),
-                  _settingsTile(Icons.location_on_rounded, 'Location', 'Lucknow, Uttar Pradesh', onTap: () {}),
-                  _settingsTile(Icons.category_rounded, 'Category', 'Kirana & FMCG', onTap: () {}),
+                  _settingsTile(Icons.store_rounded, 'Store Name', storeName),
+                  _settingsTile(Icons.location_on_rounded, 'Location', city),
+                  _settingsTile(Icons.category_rounded, 'Category', category),
                   const SizedBox(height: 20),
 
                   // Server & Environment (Dynamic Local & Deployed)
@@ -51,8 +62,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     AppConfig.currentEnv == ApiEnvironment.local
                         ? 'Local (Testing)'
                         : AppConfig.currentEnv == ApiEnvironment.deployed
-                            ? 'Render Cloud'
-                            : 'Custom URL',
+                        ? 'Render Cloud'
+                        : 'Custom URL',
                     subtitle: AppConfig.baseUrl,
                     onTap: () => _showEnvironmentDialog(context),
                   ),
@@ -60,14 +71,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   // Preferences
                   _sectionTitle('Preferences'),
-                  _settingsTile(Icons.language_rounded, 'Language', 'हिंदी (Hindi)', onTap: () => context.push('/onboarding/language')),
+                  _settingsTile(
+                    Icons.language_rounded,
+                    'Language',
+                    store?['language_pref']?.toString() ?? 'Not set',
+                  ),
                   Container(
                     margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: KiranaNapseTheme.riceCard,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: KiranaNapseTheme.sandstone, width: 1),
+                      border: Border.all(
+                        color: KiranaNapseTheme.sandstone,
+                        width: 1,
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -77,7 +98,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             color: KiranaNapseTheme.turmericTint,
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(Icons.notifications_active_outlined, color: KiranaNapseTheme.turmericDark, size: 18),
+                          child: const Icon(
+                            Icons.notifications_active_outlined,
+                            color: KiranaNapseTheme.turmericDark,
+                            size: 18,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -85,19 +110,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Daily Push Alerts',
-                                style: GoogleFonts.hind(fontSize: 13.5, fontWeight: FontWeight.w600, color: KiranaNapseTheme.jute),
+                                'Stock reminders',
+                                style: GoogleFonts.hind(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: KiranaNapseTheme.jute,
+                                ),
                               ),
                               Text(
-                                'Daily 7:00 AM stock alerts & reorder reminders',
-                                style: GoogleFonts.hind(fontSize: 11, color: KiranaNapseTheme.juteSoft),
+                                'Save your preference for stock alerts',
+                                style: GoogleFonts.hind(
+                                  fontSize: 11,
+                                  color: KiranaNapseTheme.juteSoft,
+                                ),
                               ),
                             ],
                           ),
                         ),
                         Switch(
-                          value: true,
-                          onChanged: (_) {},
+                          value: notificationsEnabled,
+                          onChanged: store == null
+                              ? null
+                              : (value) => context
+                                    .read<StoreProvider>()
+                                    .updateSettings({
+                                      'notification_enabled': value,
+                                    }),
                           activeTrackColor: KiranaNapseTheme.terracotta,
                           activeThumbColor: Colors.white,
                         ),
@@ -108,14 +146,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   // Data & Privacy
                   _sectionTitle('Data & Privacy'),
-                  _settingsTile(Icons.security_rounded, 'Data Privacy', 'Store sales are strictly private', onTap: () {}),
-                  _settingsTile(Icons.backup_rounded, 'Offline Sync', 'All data synced with cloud', onTap: () {}),
+                  _settingsTile(
+                    Icons.security_rounded,
+                    'Data Privacy',
+                    'Store sales are private',
+                  ),
+                  _settingsTile(
+                    Icons.backup_rounded,
+                    'Offline Sync',
+                    'Not available yet',
+                  ),
                   const SizedBox(height: 20),
 
                   // About
                   _sectionTitle('About'),
-                  _settingsTile(Icons.info_outline_rounded, 'Kirana-Napse', 'Version 2.0.0 (Market Edition)', onTap: () {}),
-                  _settingsTile(Icons.support_agent_rounded, 'Help & Support', 'Call or WhatsApp Helpline', onTap: () {}),
+                  _settingsTile(
+                    Icons.info_outline_rounded,
+                    'Kirana-Napse',
+                    'Version 2.0.0',
+                  ),
+                  _settingsTile(
+                    Icons.support_agent_rounded,
+                    'Help & Support',
+                    'Coming soon',
+                  ),
                   const SizedBox(height: 24),
 
                   // Logout
@@ -127,14 +181,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         context.read<AuthProvider>().logout();
                         context.go('/login');
                       },
-                      icon: const Icon(Icons.logout_rounded, color: KiranaNapseTheme.chili, size: 18),
+                      icon: const Icon(
+                        Icons.logout_rounded,
+                        color: KiranaNapseTheme.chili,
+                        size: 18,
+                      ),
                       label: Text(
                         'Logout Store',
-                        style: GoogleFonts.hind(color: KiranaNapseTheme.chili, fontWeight: FontWeight.w700),
+                        style: GoogleFonts.hind(
+                          color: KiranaNapseTheme.chili,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: KiranaNapseTheme.chili, width: 1.2),
-                        backgroundColor: KiranaNapseTheme.chiliTint.withValues(alpha: 0.3),
+                        side: const BorderSide(
+                          color: KiranaNapseTheme.chili,
+                          width: 1.2,
+                        ),
+                        backgroundColor: KiranaNapseTheme.chiliTint.withValues(
+                          alpha: 0.3,
+                        ),
                       ),
                     ),
                   ),
@@ -197,12 +263,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Text(
                     title,
-                    style: GoogleFonts.hind(fontSize: 13.5, fontWeight: FontWeight.w600, color: KiranaNapseTheme.jute),
+                    style: GoogleFonts.hind(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: KiranaNapseTheme.jute,
+                    ),
                   ),
                   if (subtitle != null) ...[
                     Text(
                       subtitle,
-                      style: GoogleFonts.hind(fontSize: 11, color: KiranaNapseTheme.juteSoft),
+                      style: GoogleFonts.hind(
+                        fontSize: 11,
+                        color: KiranaNapseTheme.juteSoft,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -213,11 +286,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (value != null) ...[
               Text(
                 value,
-                style: GoogleFonts.hind(fontSize: 12, fontWeight: FontWeight.w600, color: KiranaNapseTheme.terracotta),
+                style: GoogleFonts.hind(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: KiranaNapseTheme.terracotta,
+                ),
               ),
               const SizedBox(width: 6),
             ],
-            const Icon(Icons.chevron_right_rounded, color: KiranaNapseTheme.juteSoft, size: 18),
+            if (onTap != null)
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: KiranaNapseTheme.juteSoft,
+                size: 18,
+              ),
           ],
         ),
       ),
@@ -226,7 +308,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _showEnvironmentDialog(BuildContext context) {
     ApiEnvironment tempEnv = AppConfig.currentEnv;
-    final TextEditingController customController = TextEditingController(text: AppConfig.customUrl);
+    final TextEditingController customController = TextEditingController(
+      text: AppConfig.customUrl,
+    );
     String? testResult;
     bool isTesting = false;
 
@@ -255,18 +339,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.dns_rounded, color: KiranaNapseTheme.terracotta),
+                        const Icon(
+                          Icons.dns_rounded,
+                          color: KiranaNapseTheme.terracotta,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'Backend Server Environment',
-                          style: GoogleFonts.hind(fontSize: 16, fontWeight: FontWeight.w700, color: KiranaNapseTheme.jute),
+                          style: GoogleFonts.hind(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: KiranaNapseTheme.jute,
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 6),
                     Text(
                       'Choose where the app sends API requests. First local is default for testing.',
-                      style: GoogleFonts.hind(fontSize: 12, color: KiranaNapseTheme.juteSoft),
+                      style: GoogleFonts.hind(
+                        fontSize: 12,
+                        color: KiranaNapseTheme.juteSoft,
+                      ),
                     ),
                     const Divider(height: 24),
 
@@ -319,8 +413,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         decoration: InputDecoration(
                           hintText: 'e.g. http://192.168.1.100:8000/api/v1',
                           labelText: 'Custom Base API URL',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
                         ),
                         style: GoogleFonts.hind(fontSize: 13),
                       ),
@@ -350,10 +449,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   }
 
                                   try {
-                                    final res = await ApiClient.testHealthConnection(targetUrl);
+                                    final res =
+                                        await ApiClient.testHealthConnection(
+                                          targetUrl,
+                                        );
                                     setModalState(() {
                                       isTesting = false;
-                                      testResult = 'Online (${res['status'] ?? 'ok'})';
+                                      testResult =
+                                          'Online (${res['status'] ?? 'ok'})';
                                     });
                                   } catch (e) {
                                     setModalState(() {
@@ -366,12 +469,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ? const SizedBox(
                                   width: 14,
                                   height: 14,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 )
-                              : const Icon(Icons.wifi_tethering_rounded, size: 16),
+                              : const Icon(
+                                  Icons.wifi_tethering_rounded,
+                                  size: 16,
+                                ),
                           label: Text(
                             'Test Connection',
-                            style: GoogleFonts.hind(fontSize: 12, fontWeight: FontWeight.w600),
+                            style: GoogleFonts.hind(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -382,7 +493,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               style: GoogleFonts.hind(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: testResult!.contains('Online') ? Colors.green.shade700 : KiranaNapseTheme.chili,
+                                color: testResult!.contains('Online')
+                                    ? Colors.green.shade700
+                                    : KiranaNapseTheme.chili,
                               ),
                             ),
                           ),
@@ -392,7 +505,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                     // Auto-fallback toggle card
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: KiranaNapseTheme.riceCard,
                         borderRadius: BorderRadius.circular(10),
@@ -406,11 +522,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               children: [
                                 Text(
                                   'Auto-Fallback to Render Cloud',
-                                  style: GoogleFonts.hind(fontSize: 12.5, fontWeight: FontWeight.w600, color: KiranaNapseTheme.jute),
+                                  style: GoogleFonts.hind(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: KiranaNapseTheme.jute,
+                                  ),
                                 ),
                                 Text(
                                   'If local server is offline, requests auto-route to Render',
-                                  style: GoogleFonts.hind(fontSize: 10.5, color: KiranaNapseTheme.juteSoft),
+                                  style: GoogleFonts.hind(
+                                    fontSize: 10.5,
+                                    color: KiranaNapseTheme.juteSoft,
+                                  ),
                                 ),
                               ],
                             ),
@@ -436,7 +559,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Expanded(
                           child: TextButton(
                             onPressed: () => Navigator.pop(dialogCtx),
-                            child: Text('Cancel', style: GoogleFonts.hind(color: KiranaNapseTheme.juteSoft)),
+                            child: Text(
+                              'Cancel',
+                              style: GoogleFonts.hind(
+                                color: KiranaNapseTheme.juteSoft,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -452,9 +580,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 setState(() {});
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('Server set to: ${AppConfig.baseUrl}'),
+                                    content: Text(
+                                      'Server set to: ${AppConfig.baseUrl}',
+                                    ),
                                     duration: const Duration(seconds: 2),
-                                    backgroundColor: KiranaNapseTheme.terracotta,
+                                    backgroundColor:
+                                        KiranaNapseTheme.terracotta,
                                   ),
                                 );
                               }
@@ -462,11 +593,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: KiranaNapseTheme.terracotta,
                               foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
                             child: Text(
                               'Save & Switch',
-                              style: GoogleFonts.hind(fontWeight: FontWeight.w700),
+                              style: GoogleFonts.hind(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ),
@@ -496,10 +631,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? KiranaNapseTheme.turmericTint.withValues(alpha: 0.3) : KiranaNapseTheme.riceCard,
+          color: isSelected
+              ? KiranaNapseTheme.turmericTint.withValues(alpha: 0.3)
+              : KiranaNapseTheme.riceCard,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? KiranaNapseTheme.terracotta : KiranaNapseTheme.sandstone,
+            color: isSelected
+                ? KiranaNapseTheme.terracotta
+                : KiranaNapseTheme.sandstone,
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -507,7 +646,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Icon(
               isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-              color: isSelected ? KiranaNapseTheme.terracotta : KiranaNapseTheme.juteSoft,
+              color: isSelected
+                  ? KiranaNapseTheme.terracotta
+                  : KiranaNapseTheme.juteSoft,
               size: 20,
             ),
             const SizedBox(width: 12),
@@ -519,7 +660,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title,
                     style: GoogleFonts.hind(
                       fontSize: 13.5,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w600,
                       color: KiranaNapseTheme.jute,
                     ),
                   ),
@@ -527,7 +670,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     subtitle,
                     style: GoogleFonts.hind(
                       fontSize: 11.5,
-                      color: isSelected ? KiranaNapseTheme.terracotta : KiranaNapseTheme.juteSoft,
+                      color: isSelected
+                          ? KiranaNapseTheme.terracotta
+                          : KiranaNapseTheme.juteSoft,
                     ),
                   ),
                 ],

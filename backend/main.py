@@ -22,7 +22,6 @@ _START_TIME = time.time()
 async def lifespan(app: FastAPI):
     """Lifespan context manager for MongoDB connection and background keep-alive job."""
     await connect_to_mongo()
-
     # Start automated keep-alive heartbeat worker (every 3-4 minutes)
     keep_alive_task = start_keep_alive_task()
 
