@@ -260,6 +260,12 @@ class KiranaNapseTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: riceCard,
         indicatorColor: ledgerTint,
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            color: states.contains(WidgetState.selected) ? ledgerDark : jute,
+            size: 24,
+          ),
+        ),
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => GoogleFonts.hind(
             fontSize: 12,

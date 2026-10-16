@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     # MongoDB / MongoDB Atlas
     MONGODB_URL: str = "mongodb://localhost:27017"
     MONGODB_DB_NAME: str = "kirana_napse"
+    HOLIDAY_CALENDAR_ICS_URL: str = "https://calendar.google.com/calendar/ical/en.indian%23holiday%40group.v.calendar.google.com/public/basic.ics"
 
     # JWT Auth
     JWT_SECRET: str = "kirana-napse-dev-secret-change-in-production"

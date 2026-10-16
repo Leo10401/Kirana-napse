@@ -18,6 +18,7 @@ from .models.cold_start import compute_cold_start_blend
 from .models.statistical import HoltWintersForecaster, SarimaxForecaster
 from .models.tabular_lgbm import LightGBMForecaster
 from .model_training import load_cached_model_artifact, train_single_sku_model
+from .holiday_calendar import upcoming_event_context
 
 
 async def get_festival_multiplier(
@@ -27,18 +28,8 @@ async def get_festival_multiplier(
     end_date: date
 ) -> float:
     """Check if any festival falls in the horizon and return aggregate demand multiplier."""
-    start_str = start_date.isoformat()
-    end_str = end_date.isoformat()
-
-    cursor = db.festival_calendar_entries.find({
-        "region": {"$in": [region, "National", "All"]},
-        "date": {"$gte": start_str, "$lte": end_str},
-    })
-    festivals = await cursor.to_list(length=100)
-    if not festivals:
-        return 1.0
-
-    return max([f.get("expected_demand_multiplier", 1.0) for f in festivals], default=1.0)
+    multiplier, _ = await upcoming_event_context(db, region, start_date, end_date)
+    return multiplier
 
 
 async def forecast_sku_demand(
@@ -152,13 +143,16 @@ async def run_forecast_for_store(
     today = date.today()
     today_str = today.isoformat()
     horizon_end = today + timedelta(days=horizon_days)
-    festival_mult = await get_festival_multiplier(db, region, today, horizon_end)
+    festival_mult, calendar_event = await upcoming_event_context(
+        db, region, today, horizon_end
+    )
 
     # Fetch all SKUs for store
     cursor = db.skus.find({"store_id": store_id})
     skus = await cursor.to_list(length=1000)
 
     generated_recommendations = []
+    batch_id = str(uuid.uuid4())
     past_90_days_str = (today - timedelta(days=90)).isoformat()
     now = datetime.now(timezone.utc)
 
@@ -211,7 +205,10 @@ async def run_forecast_for_store(
             "confidence_lower": forecast_out.confidence_lower,
             "confidence_upper": forecast_out.confidence_upper,
             "primary_drivers": forecast_out.primary_drivers,
+            "calendar_event": calendar_event,
+            "calendar_multiplier": festival_mult,
             "created_at": now,
+            "batch_id": batch_id,
         }
         await db.forecast_runs.insert_one(forecast_doc)
 
@@ -259,6 +256,8 @@ async def run_forecast_for_store(
                 reason_text_hi = f"एक्सपायरी जोखिम: {days_to_exp} दिनों में समाप्त हो रहा है! शेष स्टॉक: {current_stock} {unit}."
 
         if rec_type:
+            if calendar_event:
+                reason_text += f" Calendar forecast includes {calendar_event}."
             rec_doc = {
                 "id": str(uuid.uuid4()),
                 "store_id": store_id,
@@ -272,6 +271,7 @@ async def run_forecast_for_store(
                 "status": "pending",
                 "created_at": now,
                 "updated_at": now,
+                "batch_id": batch_id,
             }
             await db.recommendations.insert_one(rec_doc)
             generated_recommendations.append(rec_doc)

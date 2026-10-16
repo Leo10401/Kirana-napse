@@ -11,6 +11,7 @@ AI-Powered Demand Forecasting & Reorder Assistant for Kirana Stores.
 - **Bill Photo OCR Pipeline** (`/api/v1/stores/{id}/bills/photo`, `/api/v1/bills/jobs/{id}`)
 - **FCM Device Token & Install Event Tracking** (`/api/v1/stores/{id}/device-tokens`, `/api/v1/stores/{id}/install-events`)
 - **Festival Calendar Seeder** with 16 national & regional festivals + monthly payday surge multipliers
+- **Live India Holiday Calendar** refreshed daily from a public Google Calendar feed; cached dates are used when the feed is unavailable
 - **Render Keep-Alive Heartbeat Job** (Automated ping every 3-4 minutes to prevent free-tier spin-down)
 
 ---
@@ -37,6 +38,8 @@ Health Check: http://localhost:8000/health
 venv\Scripts\python.exe -m app.db.seed_demo
 ```
 Log in with `+919876543210` / `password123` (also prefilled in the Flutter login screen). The seed prepares 10 catalog items, current stock, 21 days of sales per item, and fresh low-stock, reorder, overstock, and expiry recommendations. Run it again before a presentation to refresh dates and recommendations. It resets the known demo products' stock and generated recommendations while retaining manually entered sales and any other store's data.
+
+The backend refreshes Indian holiday dates on startup and once a day, then recalculates active stores' forecasts when they are older than today. The 16 built-in calendar entries remain as a fallback. `HOLIDAY_CALENDAR_ICS_URL` can override the public feed URL. Event demand multipliers are planning assumptions; the app does not claim that a holiday caused a measured sales change.
 
 ### 4. Run Backtesting Validation Harness
 ```bash

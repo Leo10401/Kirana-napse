@@ -32,7 +32,13 @@ async def get_today_recommendations(
     if current_user["store_id"] != store_id:
         raise HTTPException(status_code=403, detail="Not authorized for this store")
 
-    cursor = db.recommendations.find({"store_id": store_id}).sort("created_at", -1).limit(200)
+    latest_run = await db.forecast_runs.find_one(
+        {"store_id": store_id}, sort=[("created_at", -1)]
+    )
+    query = {"store_id": store_id}
+    if latest_run and latest_run.get("batch_id"):
+        query["batch_id"] = latest_run["batch_id"]
+    cursor = db.recommendations.find(query).sort("created_at", -1).limit(200)
     recent_recs = await cursor.to_list(length=200)
     # Re-running the forecast can leave older recommendations for the same
     # product. Show only its newest recommendation in the daily view.
